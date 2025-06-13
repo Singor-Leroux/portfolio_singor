@@ -5,7 +5,7 @@ import {
   DialogContent, DialogActions, TextField, CircularProgress, Alert, Snackbar, Tooltip
 } from '@mui/material';
 import { Add, Edit, Delete, FileDownload, Search, Clear } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRenderCellParams, GridValueGetterParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { 
   ExperienceBE, 
   getExperiences, 
@@ -16,11 +16,18 @@ import {
   ExperienceUpdatePayload 
 } from '../api/experiences';
 
+interface ExperienceFormData extends Omit<Partial<ExperienceBE>, 'technologies'> {
+  technologies?: string | string[];
+}
+
 const ExperiencesPage = () => {
   const [open, setOpen] = useState(false);
-  interface ExperienceFormData extends Omit<Partial<ExperienceBE>, 'technologies'> {
-    technologies?: string | string[];
-  }
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [experienceToDelete, setExperienceToDelete] = useState<{ id: string, title: string } | null>(null);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
 
   const [currentExperience, setCurrentExperience] = useState<ExperienceFormData>({});
   const [snackbar, setSnackbar] = useState<{ 
@@ -106,11 +113,24 @@ const ExperiencesPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['experiences'] });
       showSnackbar('Expérience supprimée avec succès', 'success');
+      setDeleteDialogOpen(false);
     },
-    onError: () => {
-      showSnackbar('Erreur lors de la suppression', 'error');
+    onError: (error: Error) => {
+      showSnackbar(`Erreur lors de la suppression: ${error.message}`, 'error');
+      setDeleteDialogOpen(false);
     }
   });
+
+  const handleDeleteClick = (id: string, title: string) => {
+    setExperienceToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (experienceToDelete) {
+      deleteMutation.mutate(experienceToDelete.id);
+    }
+  };
 
   const formatDateForInput = (date: string | Date | undefined) => {
     if (!date) return '';
@@ -338,28 +358,49 @@ const ExperiencesPage = () => {
       filterable: false,
       width: 120,
       renderCell: (params: any) => (
-        <Box>
+        <Box sx={{ display: 'flex', gap: '8px' }}>
           <Tooltip title="Modifier">
             <IconButton 
-              size="small" 
-              onClick={() => handleOpen(params.row)}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpen(params.row);
+              }}
               aria-label="Modifier"
+              sx={{
+                color: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'primary.contrastText',
+                },
+                transition: 'all 0.2s',
+                p: '6px',
+                m: '0 2px',
+              }}
             >
-              <Edit />
+              <Edit fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Supprimer">
             <IconButton 
-              size="small" 
-              color="error"
-              onClick={() => {
-                if (window.confirm('Êtes-vous sûr de vouloir supprimer cette expérience ?')) {
-                  deleteMutation.mutate(params.row._id);
-                }
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(params.row._id, params.row.title || 'cette expérience');
               }}
               aria-label="Supprimer"
+              sx={{
+                color: 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText',
+                },
+                transition: 'all 0.2s',
+                p: '6px',
+                m: '0 2px',
+              }}
             >
-              <Delete />
+              <Delete fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
@@ -388,7 +429,7 @@ const ExperiencesPage = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4, height: '100%' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
           Gestion des Expériences
@@ -452,18 +493,31 @@ const ExperiencesPage = () => {
           </Button>
         </Box>
         <Box sx={{ 
-          height: 'calc(100vh - 300px)', 
+          height: 'calc(100vh - 200px)',
           width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
           '& .MuiDataGrid-root': {
             border: 'none',
+            flex: 1,
             '& .MuiDataGrid-cell': {
               borderBottom: '1px solid #f0f0f0',
               display: 'flex',
               alignItems: 'center',
-              padding: '8px 16px'
+              padding: '8px 16px',
+              '&:focus': {
+                outline: 'none',
+              }
+            },
+            '& .MuiDataGrid-row': {
+              '&:hover': {
+                backgroundColor: 'action.hover',
+                cursor: 'pointer',
+              }
             },
             '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: '#f5f5f5',
+              backgroundColor: 'background.paper',
+              borderBottom: '1px solid #e0e0e0',
             },
           }
         }}>
@@ -489,28 +543,94 @@ const ExperiencesPage = () => {
               rows={filteredExperiences}
               columns={columns}
               getRowId={(row) => row._id || Math.random().toString(36).substr(2, 9)}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 10, page: 0 },
-                },
-              }}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10, 25, 50]}
               disableRowSelectionOnClick
               loading={isLoading}
-              autoHeight
-              sx={{ 
-                '& .MuiDataGrid-cell': { 
-                  padding: '8px',
-                  whiteSpace: 'normal',
-                  lineHeight: 'normal',
-                  display: 'flex',
-                  alignItems: 'center'
+              sortingMode="server"
+              localeText={{
+                // Textes de base
+                noRowsLabel: 'Aucune donnée disponible',
+                noResultsOverlayLabel: 'Aucun résultat trouvé.',
+                
+                // Barre d'outils
+                toolbarColumns: 'Colonnes',
+                toolbarFilters: 'Filtrer',
+                toolbarExport: 'Exporter',
+                toolbarExportCSV: 'Télécharger en CSV',
+                toolbarExportPrint: 'Imprimer',
+                toolbarDensity: 'Densité',
+                toolbarDensityCompact: 'Compacte',
+                toolbarDensityStandard: 'Standard',
+                toolbarDensityComfortable: 'Confortable',
+                
+                // Menu des colonnes
+                columnMenuLabel: 'Menu',
+                columnMenuShowColumns: 'Afficher les colonnes',
+                columnMenuFilter: 'Filtrer',
+                columnMenuHideColumn: 'Masquer',
+                columnMenuUnsort: 'Non trié',
+                columnMenuSortAsc: 'Trier par ordre croissant',
+                columnMenuSortDesc: 'Trier par ordre décroissant',
+                
+                // Panneau des colonnes
+                columnsManagementSearchTitle: 'Rechercher une colonne',
+                columnsManagementShowHideAllText: 'Tout afficher/masquer',
+                columnsManagementNoColumns: 'Aucune colonne disponible',
+                
+                // Filtres
+                filterPanelAddFilter: 'Ajouter un filtre',
+                filterPanelDeleteIconLabel: 'Supprimer',
+                filterPanelOperator: 'Opérateur',
+                filterPanelOperatorAnd: 'Et',
+                filterPanelOperatorOr: 'Ou',
+                filterPanelColumns: 'Colonnes',
+                filterPanelInputLabel: 'Valeur',
+                filterPanelInputPlaceholder: 'Valeur du filtre',
+                filterOperatorContains: 'contient',
+                filterOperatorEquals: 'égal à',
+                filterOperatorStartsWith: 'commence par',
+                filterOperatorEndsWith: 'se termine par',
+                filterOperatorIsEmpty: 'est vide',
+                filterOperatorIsNotEmpty: 'n\'est pas vide',
+                filterOperatorIsAnyOf: 'fait partie de',
+                filterValueAny: 'n\'importe quelle valeur',
+                filterValueTrue: 'Oui',
+                filterValueFalse: 'Non',
+                
+                // Pagination
+                MuiTablePagination: {
+                  labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
+                    `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
+                  labelRowsPerPage: 'Lignes par page:',
+                  getItemAriaLabel: (type: string) => {
+                    switch (type) {
+                      case 'first':
+                        return 'Première page';
+                      case 'last':
+                        return 'Dernière page';
+                      case 'next':
+                        return 'Page suivante';
+                      case 'previous':
+                        return 'Page précédente';
+                      default:
+                        return '';
+                    }
+                  }
+                }
+              }}
+              sx={{
+                flex: 1,
+                '& .MuiDataGrid-cell:focus': {
+                  outline: 'none',
                 },
                 '& .MuiDataGrid-row': {
                   '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                  }
-                }
+                    backgroundColor: 'action.hover',
+                    cursor: 'pointer',
+                  },
+                },
               }}
             />
           )}
@@ -527,6 +647,42 @@ const ExperiencesPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirmer la suppression
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer l'expérience <strong>"{experienceToDelete?.title || ''}"</strong> ?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Cette action est irréversible et supprimera définitivement l'expérience.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            autoFocus
+            disabled={deleteMutation.isPending}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            color="error"
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending ? <CircularProgress size={20} /> : <Delete />}
+          >
+            {deleteMutation.isPending ? 'Suppression...' : 'Supprimer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <form onSubmit={handleSubmit}>

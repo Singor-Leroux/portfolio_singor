@@ -3,16 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Button, Container, Typography, Dialog, DialogTitle, Paper,
   DialogContent, DialogActions, TextField, CircularProgress, Alert, Snackbar,
-  Link, Avatar, InputAdornment, IconButton
+  Link, Avatar, InputAdornment, IconButton, Tooltip
 } from '@mui/material';
 import {
-  DataGrid, GridColDef, GridActionsCellItem, GridRowParams, GridToolbarContainer, GridToolbarFilterButton, GridToolbarExport
+  DataGrid, GridColDef, GridRowParams
 } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Link as LinkIcon, Image as ImageIcon, Visibility, Search, Clear, FileDownload } from '@mui/icons-material';
+import { Add, Edit, Delete, Link as LinkIcon, Image as ImageIcon, Search, Clear, FileDownload } from '@mui/icons-material';
 import {
   CertificationBE,
   CertificationCreationPayload,
-  CertificationUpdatePayload,
   getCertifications,
   createCertification,
   updateCertification,
@@ -24,10 +23,16 @@ type CertificationFormState = Partial<CertificationBE> & Partial<CertificationCr
 
 const CertificationsPage = () => {
   const [openDialog, setOpenDialog] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [certificationToDelete, setCertificationToDelete] = useState<{ id: string, title: string } | null>(null);
   const [currentCertification, setCurrentCertification] = useState<CertificationFormState | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null); // State for the selected file
   const [searchText, setSearchText] = useState(''); // State pour la barre de recherche
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'success' });
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
   const queryClient = useQueryClient();
 
   const { data: certifications = [], isLoading, error: queryError } = useQuery<CertificationBE[]>({ // Updated type
@@ -58,9 +63,26 @@ const CertificationsPage = () => {
 
   const removeMutation = useMutation({
     mutationFn: deleteCertification,
-    onSuccess: () => handleMutationSuccess('Certification supprimée avec succès.'),
-    onError: (error) => handleMutationError('Erreur lors de la suppression de la certification.', error),
+    onSuccess: () => {
+      handleMutationSuccess('Certification supprimée avec succès.');
+      setDeleteDialogOpen(false);
+    },
+    onError: (error) => {
+      handleMutationError('Erreur lors de la suppression de la certification.', error);
+      setDeleteDialogOpen(false);
+    },
   });
+
+  const handleDeleteClick = (id: string, title: string) => {
+    setCertificationToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (certificationToDelete) {
+      removeMutation.mutate(certificationToDelete.id);
+    }
+  };
 
   const handleOpenDialog = useCallback((certification: CertificationBE | null = null) => {
     setSelectedFile(null); // Reset selected file on dialog open
@@ -124,7 +146,7 @@ const CertificationsPage = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  const handleCloseSnackbar = (_event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
       return;
     }
@@ -224,23 +246,57 @@ const CertificationsPage = () => {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 100,
-      getActions: (params: GridRowParams<CertificationBE>) => [
-        // @ts-expect-error - MUI typing issue with GridActionsCellItem and showInMenu
-        <GridActionsCellItem
-          icon={<Edit />}
-          label="Modifier"
-          onClick={() => handleOpenDialog(params.row)}
-          showInMenu={false}
-        />,
-        // @ts-expect-error - MUI typing issue with GridActionsCellItem and showInMenu
-        <GridActionsCellItem
-          icon={<Delete />}
-          label="Supprimer"
-          onClick={() => removeMutation.mutate(params.row._id)}
-          disabled={removeMutation.isPending}
-          showInMenu={false}
-        />,
+      width: 120,
+      cellClassName: 'actions',
+      getActions: (params: GridRowParams<CertificationBE>): JSX.Element[] => [
+        <Tooltip key="edit" title="Modifier">
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenDialog(params.row);
+            }}
+            aria-label="Modifier"
+            sx={{
+              color: 'primary.main',
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                color: 'primary.contrastText',
+              },
+              transition: 'all 0.2s',
+              p: '6px',
+              m: '0 2px',
+            }}
+          >
+            <Edit fontSize="small" />
+          </IconButton>
+        </Tooltip>,
+        <Tooltip key="delete" title="Supprimer">
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteClick(params.row._id, params.row.title || 'cette certification');
+            }}
+            aria-label="Supprimer"
+            disabled={removeMutation.isPending}
+            sx={{
+              color: 'error.main',
+              '&:hover': {
+                backgroundColor: 'error.light',
+                color: 'error.contrastText',
+              },
+              '&.Mui-disabled': {
+                color: 'action.disabled',
+              },
+              transition: 'all 0.2s',
+              p: '6px',
+              m: '0 2px',
+            }}
+          >
+            <Delete fontSize="small" />
+          </IconButton>
+        </Tooltip>,
       ],
     },
   ], [handleOpenDialog, removeMutation]);
@@ -326,71 +382,51 @@ const CertificationsPage = () => {
       </Box>
       
       <Paper sx={{ height: 'calc(100vh - 200px)', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <CustomToolbar />
         <DataGrid
           rows={filteredCertifications}
           columns={columns}
           getRowId={(row) => row._id}
           loading={isLoading || upsertMutation.isPending || removeMutation.isPending}
-          components={{ Toolbar: CustomToolbar }}
-          initialState={{
-            pagination: {
-              page: 0,
-              pageSize: 10,
-            },
-            sorting: {
-              sortModel: [{ field: 'date', sort: 'desc' }],
-            },
-          }}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableSelectionOnClick
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          sortingMode="server"
+          sortModel={[{ field: 'date', sort: 'desc' }]}
           localeText={{
-            // Menu et en-têtes
-            columnMenuLabel: 'Menu',
+            // Textes de base
+            noRowsLabel: 'Aucune donnée disponible',
+            noResultsOverlayLabel: 'Aucun résultat trouvé.',
+            
+            // Barre d'outils
+            toolbarColumns: 'Colonnes',
+            toolbarFilters: 'Filtrer',
+            
+            // Menu des colonnes
             columnMenuShowColumns: 'Afficher les colonnes',
             columnMenuFilter: 'Filtrer',
-            columnMenuHideColumn: 'Masquer',
-            columnMenuUnsort: 'Non trié',
-            columnMenuSortAsc: 'Trier par ordre croissant',
-            columnMenuSortDesc: 'Trier par ordre décroissant',
-            columnHeaderSortIconLabel: 'Trier',
-            
-            // Panneau des colonnes
-            columnsPanelTextFieldLabel: 'Rechercher une colonne',
-            columnsPanelShowAllButton: 'Tout afficher',
-            columnsPanelHideAllButton: 'Tout masquer',
-            
-            // Filtres
-            filterPanelAddFilter: 'Ajouter un filtre',
-            filterPanelDeleteIconLabel: 'Supprimer',
-            filterPanelOperators: 'Opérateurs',
-            filterPanelOperatorAnd: 'Et',
-            filterPanelOperatorOr: 'Ou',
-            filterPanelColumns: 'Colonnes',
-            filterPanelInputLabel: 'Valeur',
-            filterPanelInputPlaceholder: 'Valeur du filtre',
-            filterOperatorContains: 'contient',
-            filterOperatorEquals: 'égal à',
-            filterOperatorStartsWith: 'commence par',
-            filterOperatorEndsWith: 'se termine par',
-            filterOperatorIsEmpty: 'est vide',
-            filterOperatorIsNotEmpty: 'n\'est pas vide',
-            filterOperatorIsAnyOf: 'fait partie de',
-            filterValueAny: 'n\'importe quelle valeur',
-            filterValueTrue: 'Oui',
-            filterValueFalse: 'Non',
             
             // Pagination
             MuiTablePagination: {
+              labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
+                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
               labelRowsPerPage: 'Lignes par page:',
-              labelDisplayedRows: ({ from, to, count }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-            },
-            
-            // Messages
-            noRowsLabel: 'Aucune donnée disponible',
-            noResultsOverlayLabel: 'Aucun résultat trouvé.',
-            errorOverlayDefaultLabel: 'Une erreur est survenue.'
+              getItemAriaLabel: (type: string) => {
+                switch (type) {
+                  case 'first':
+                    return 'Première page';
+                  case 'last':
+                    return 'Dernière page';
+                  case 'next':
+                    return 'Page suivante';
+                  case 'previous':
+                    return 'Page précédente';
+                  default:
+                    return '';
+                }
+              }
+            }
           }}
           sx={{
             flex: 1,
@@ -587,6 +623,43 @@ const CertificationsPage = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Boîte de dialogue de confirmation de suppression */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirmer la suppression
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer la certification <strong>"{certificationToDelete?.title || ''}"</strong> ?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Cette action est irréversible et supprimera définitivement la certification.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            autoFocus
+            disabled={removeMutation.isPending}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            color="error"
+            disabled={removeMutation.isPending}
+            startIcon={removeMutation.isPending ? <CircularProgress size={20} /> : <Delete />}
+          >
+            {removeMutation.isPending ? 'Suppression...' : 'Supprimer'}
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Snackbar

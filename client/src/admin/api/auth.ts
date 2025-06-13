@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = '/api/v1/auth';
+import apiClient from './apiClient';
 
 type LoginData = {
   email: string;
@@ -21,15 +19,15 @@ type LoginResponse = {
 };
 
 export const login = async (data: LoginData): Promise<LoginResponse> => {
-  const response = await axios.post<LoginResponse>(`${API_URL}/login`, data);
+  const response = await apiClient.post<LoginResponse>('/api/v1/auth/login', data);
   return response.data;
 };
 
 export const logout = async (): Promise<void> => {
-  await axios.post(`${API_URL}/logout`);
+  await apiClient.post('/api/v1/auth/logout');
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await axios.get<{ data: User }>(`${API_URL}/me`);
+  const response = await apiClient.get<{ data: User }>('/api/v1/auth/me');
   return response.data.data;
 };

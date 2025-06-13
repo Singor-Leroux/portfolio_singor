@@ -15,6 +15,7 @@ const router = Router();
 // Routes publiques
 router.get('/featured', getFeaturedProjects);
 router.get('/:id', getProject);
+router.get('/', getProjects);
 
 // Routes protégées (admin uniquement)
 router.use(protect);
@@ -22,12 +23,11 @@ router.use(authorize('admin'));
 
 router
   .route('/')
-  .get(getProjects)
-  .post(protect, authorize('admin'), uploadProjectImage, createProject);
+  .post(uploadProjectImage, createProject);
 
 router
   .route('/:id')
-  .put(protect, authorize('admin'), uploadProjectImage, updateProject)
-  .delete(protect, authorize('admin'), deleteProject);
+  .put(uploadProjectImage, updateProject)
+  .delete(deleteProject);
 
 export default router;

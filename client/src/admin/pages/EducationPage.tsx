@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Button, Container, Typography, Paper, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, CircularProgress, Alert, Snackbar, Grid, IconButton
+  DialogContent, DialogActions, TextField, CircularProgress, Alert, 
+  Snackbar, IconButton, Tooltip
 } from '@mui/material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams, GridActionsColDef } from '@mui/x-data-grid';
+// styled n'est pas utilisé pour le moment
+import { DataGrid, GridColDef, GridRowParams, GridActionsColDef } from '@mui/x-data-grid';
 import { Add, Edit, Delete, FileDownload, Search, Clear } from '@mui/icons-material';
 import {
   EducationBE,
@@ -34,11 +36,17 @@ const initialEducationFormState: EducationFormState = {
 
 const EducationPage = () => {
   const [openDialog, setOpenDialog] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [educationToDelete, setEducationToDelete] = useState<{ id: string, title: string } | null>(null);
   const [currentEducationForm, setCurrentEducationForm] = useState<EducationFormState>(initialEducationFormState);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({ open: false, message: '', severity: 'success' });
   const [searchText, setSearchText] = useState('');
   const queryClient = useQueryClient();
+  const [paginationModel, setPaginationModel] = React.useState({
+    page: 0,
+    pageSize: 10,
+  });
 
   const { data: educations = [], isLoading, error: queryError } = useQuery<EducationBE[], Error>({
     queryKey: ['educations'],
@@ -72,11 +80,24 @@ const EducationPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['educations'] });
       showSnackbar('Formation supprimée avec succès', 'success');
+      setDeleteDialogOpen(false);
     },
     onError: (err) => {
       showSnackbar(`Erreur lors de la suppression: ${err.message}`, 'error');
+      setDeleteDialogOpen(false);
     }
   });
+
+  const handleDeleteClick = (id: string, title: string) => {
+    setEducationToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (educationToDelete) {
+      deleteMutation.mutate(educationToDelete.id);
+    }
+  };
 
   const handleOpenCreateDialog = () => {
     setCurrentEducationForm(initialEducationFormState);
@@ -132,8 +153,18 @@ const EducationPage = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  const columns: GridColDef<EducationBE>[] = [
-    { field: 'degree', headerName: 'Diplôme', flex: 1.5, minWidth: 200 },
+  const columns: GridColDef[] = [
+    { 
+      field: 'degree', 
+      headerName: 'Diplôme', 
+      flex: 1.5, 
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ width: '100%', whiteSpace: 'normal' }}>
+          {params.row?.degree || 'Non spécifié'}
+        </Box>
+      )
+    },
     { field: 'institution', headerName: 'Établissement', flex: 1.5, minWidth: 200 },
     { 
       field: 'startDate', 
@@ -187,28 +218,57 @@ const EducationPage = () => {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 120,
       cellClassName: 'actions',
       getActions: (params: GridRowParams<EducationBE>): JSX.Element[] => [
-        <div key="edit" onClick={() => handleOpenEditDialog(params.row)}>
-          {/* @ts-expect-error - Workaround for MUI GridActionsCellItem type issue */}
-          <GridActionsCellItem
-            icon={<Edit />}
-            label="Modifier"
-            showInMenu={false}
+        <Tooltip key="edit" title="Modifier">
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenEditDialog(params.row);
+            }}
             aria-label="Modifier"
-          />
-        </div>,
-        <div key="delete" onClick={() => !deleteMutation.isPending && deleteMutation.mutate(params.row._id)}>
-          {/* @ts-expect-error - Workaround for MUI GridActionsCellItem type issue */}
-          <GridActionsCellItem
-            icon={<Delete />}
-            label="Supprimer"
-            disabled={deleteMutation.isPending}
-            showInMenu={false}
+            sx={{
+              color: 'primary.main',
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                color: 'primary.contrastText',
+              },
+              transition: 'all 0.2s',
+              p: '6px',
+              m: '0 2px',
+            }}
+          >
+            <Edit fontSize="small" />
+          </IconButton>
+        </Tooltip>,
+        <Tooltip key="delete" title="Supprimer">
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteClick(params.row._id, params.row.degree || 'cette formation');
+            }}
             aria-label="Supprimer"
-          />
-        </div>,
+            disabled={deleteMutation.isPending}
+            sx={{
+              color: 'error.main',
+              '&:hover': {
+                backgroundColor: 'error.light',
+                color: 'error.contrastText',
+              },
+              '&.Mui-disabled': {
+                color: 'action.disabled',
+              },
+              transition: 'all 0.2s',
+              p: '6px',
+              m: '0 2px',
+            }}
+          >
+            <Delete fontSize="small" />
+          </IconButton>
+        </Tooltip>,
       ],
     } as GridActionsColDef<EducationBE>,
   ];
@@ -290,58 +350,45 @@ const EducationPage = () => {
         <DataGrid
           rows={filteredEducations}
           columns={columns}
-          getRowId={(row: EducationBE) => row._id}
+          getRowId={(row) => row._id}
           loading={isLoading || mutation.isPending || deleteMutation.isPending}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableSelectionOnClick
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          // Configuration de localisation minimale
           localeText={{
-            // Menu et en-têtes
-            columnMenuLabel: 'Menu',
+            // Textes de base
+            noRowsLabel: 'Aucune donnée disponible',
+            
+            // Barre d'outils
+            toolbarColumns: 'Colonnes',
+            toolbarFilters: 'Filtrer',
+            
+            // Menu des colonnes
             columnMenuShowColumns: 'Afficher les colonnes',
             columnMenuFilter: 'Filtrer',
-            columnMenuHideColumn: 'Masquer',
-            columnMenuUnsort: 'Non trié',
-            columnMenuSortAsc: 'Trier par ordre croissant',
-            columnMenuSortDesc: 'Trier par ordre décroissant',
-            columnHeaderSortIconLabel: 'Trier',
-            
-            // Panneau des colonnes
-            columnsPanelTextFieldLabel: 'Rechercher une colonne',
-            columnsPanelShowAllButton: 'Tout afficher',
-            columnsPanelHideAllButton: 'Tout masquer',
-            
-            // Filtres
-            filterPanelAddFilter: 'Ajouter un filtre',
-            filterPanelDeleteIconLabel: 'Supprimer',
-            filterPanelOperators: 'Opérateurs',
-            filterPanelOperatorAnd: 'Et',
-            filterPanelOperatorOr: 'Ou',
-            filterPanelColumns: 'Colonnes',
-            filterPanelInputLabel: 'Valeur',
-            filterPanelInputPlaceholder: 'Valeur du filtre',
-            filterOperatorContains: 'contient',
-            filterOperatorEquals: 'égal à',
-            filterOperatorStartsWith: 'commence par',
-            filterOperatorEndsWith: 'se termine par',
-            filterOperatorIsEmpty: 'est vide',
-            filterOperatorIsNotEmpty: 'n\'est pas vide',
-            filterOperatorIsAnyOf: 'fait partie de',
-            filterValueAny: 'n\'importe quelle valeur',
-            filterValueTrue: 'Oui',
-            filterValueFalse: 'Non',
             
             // Pagination
             MuiTablePagination: {
+              labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
+                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
               labelRowsPerPage: 'Lignes par page:',
-              labelDisplayedRows: ({ from, to, count }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-            },
-            
-            // Messages
-            noRowsLabel: 'Aucune donnée disponible',
-            noResultsOverlayLabel: 'Aucun résultat trouvé.',
-            errorOverlayDefaultLabel: 'Une erreur est survenue.'
+              getItemAriaLabel: (type: string) => {
+                switch (type) {
+                  case 'first':
+                    return 'Première page';
+                  case 'last':
+                    return 'Dernière page';
+                  case 'next':
+                    return 'Page suivante';
+                  case 'previous':
+                    return 'Page précédente';
+                  default:
+                    return '';
+                }
+              }
+            }
           }}
           sx={{
             flex: 1,
@@ -362,8 +409,8 @@ const EducationPage = () => {
         <form onSubmit={handleSubmit}>
           <DialogTitle>{editingId ? 'Modifier la Formation' : 'Nouvelle Formation'}</DialogTitle>
           <DialogContent>
-            <Grid container spacing={2} sx={{pt: 1}}>
-              <Grid item xs={12} sm={6}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, pt: 1 }}>
+              <Box>
                 <TextField
                   autoFocus
                   margin="dense"
@@ -375,8 +422,8 @@ const EducationPage = () => {
                   onChange={handleChange}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box>
                 <TextField
                   margin="dense"
                   name="institution"
@@ -387,8 +434,8 @@ const EducationPage = () => {
                   onChange={handleChange}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box>
                 <TextField
                   margin="dense"
                   name="startDate"
@@ -402,8 +449,8 @@ const EducationPage = () => {
                   onChange={handleChange}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box>
                 <TextField
                   margin="dense"
                   name="endDate"
@@ -416,8 +463,8 @@ const EducationPage = () => {
                   value={currentEducationForm.endDate}
                   onChange={handleChange}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box sx={{ gridColumn: '1 / -1' }}>
                 <TextField
                   margin="dense"
                   name="description"
@@ -429,8 +476,8 @@ const EducationPage = () => {
                   value={currentEducationForm.description}
                   onChange={handleChange}
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Annuler</Button>
@@ -439,6 +486,43 @@ const EducationPage = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Boîte de dialogue de confirmation de suppression */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirmer la suppression
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer la formation <strong>"{educationToDelete?.title || ''}"</strong> ?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Cette action est irréversible et supprimera définitivement la formation.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            autoFocus
+            disabled={deleteMutation.isPending}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            color="error"
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending ? <CircularProgress size={20} /> : <Delete />}
+          >
+            {deleteMutation.isPending ? 'Suppression...' : 'Supprimer'}
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Snackbar 

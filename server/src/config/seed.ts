@@ -7,61 +7,61 @@ dotenv.config();
 const defaultSkills = [
   {
     name: 'JavaScript',
-    level: 5,
+    level: 'Expert',
     category: 'frontend',
     icon: 'javascript'
   },
   {
     name: 'TypeScript',
-    level: 4,
+    level: 'Confirmé',
     category: 'frontend',
     icon: 'typescript'
   },
   {
     name: 'React',
-    level: 5,
+    level: 'Expert',
     category: 'frontend',
     icon: 'react'
   },
   {
     name: 'Node.js',
-    level: 5,
+    level: 'Expert',
     category: 'backend',
     icon: 'nodejs'
   },
   {
     name: 'MongoDB',
-    level: 4,
+    level: 'Confirmé',
     category: 'database',
     icon: 'mongodb'
   },
   {
     name: 'Docker',
-    level: 3,
+    level: 'Intermédiaire',
     category: 'devops',
     icon: 'docker'
   },
   {
     name: 'Git',
-    level: 4,
+    level: 'Confirmé',
     category: 'devops',
     icon: 'git'
   },
   {
     name: 'HTML5',
-    level: 5,
+    level: 'Expert',
     category: 'frontend',
     icon: 'html5'
   },
   {
     name: 'CSS3',
-    level: 5,
+    level: 'Expert',
     category: 'frontend',
     icon: 'css3'
   },
   {
     name: 'Express',
-    level: 4,
+    level: 'Confirmé',
     category: 'backend',
     icon: 'express'
   }

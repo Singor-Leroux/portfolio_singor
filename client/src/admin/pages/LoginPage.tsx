@@ -30,7 +30,13 @@ export const LoginPage = () => {
 
     try {
       await login(email, password);
-      navigate('/admin');
+      
+      // Récupérer l'URL de redirection depuis l'URL actuelle
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectTo = searchParams.get('redirectTo') || '/admin/dashboard';
+      
+      // Rediriger vers la page demandée ou le tableau de bord par défaut
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError('Échec de la connexion. Veuillez vérifier vos identifiants.');
       console.error('Login error:', err);

@@ -9,11 +9,13 @@ export interface ApiError {
 
 // Création de l'instance axios avec des en-têtes par défaut
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5000',
+  // Ne pas mettre de baseURL ici car elle est déjà gérée par le proxy Vite
+  baseURL: '',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important pour les cookies d'authentification
 });
 
 // Intercepteur de requête pour ajouter le token JWT et gérer les FormData

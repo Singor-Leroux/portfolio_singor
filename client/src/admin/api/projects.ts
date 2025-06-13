@@ -70,7 +70,6 @@ export const createProject = async (project: ProjectCreationPayload | FormData):
   return response.data.data;
 };
 
-// Type pour la fonction updateProject avec l'ID dans l'URL
 export const updateProject = async (id: string, project: Omit<ProjectUpdatePayload, 'id'> | FormData): Promise<ProjectBE> => {
   // Déterminer si nous avons affaire à un FormData ou à un objet standard
   const isFormData = project instanceof FormData;

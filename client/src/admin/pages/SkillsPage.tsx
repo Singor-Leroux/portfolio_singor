@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Button, Container, Typography, Paper, IconButton, Dialog, DialogTitle,
@@ -12,9 +12,15 @@ import { Skill, getSkills, createSkill, updateSkill, deleteSkill, SkillLevel, Sk
 
 const SkillsPage = () => {
   const [open, setOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [skillToDelete, setSkillToDelete] = useState<{ id: string, name: string } | null>(null);
   const [currentSkill, setCurrentSkill] = useState<Partial<Skill> | null>(null);
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({ open: false, message: '', severity: 'success' });
   const [searchText, setSearchText] = useState('');
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
   const queryClient = useQueryClient();
 
   // Récupérer les compétences
@@ -57,14 +63,16 @@ const SkillsPage = () => {
 
   // Supprimer une compétence
   const deleteMutation = useMutation({
-    mutationFn: deleteSkill,
+    mutationFn: (id: string) => deleteSkill(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['skills'] });
       showSnackbar('Compétence supprimée avec succès', 'success');
+      setDeleteDialogOpen(false);
     },
-    onError: () => {
-      showSnackbar('Erreur lors de la suppression', 'error');
-    }
+    onError: (error: Error) => {
+      showSnackbar(`Erreur lors de la suppression: ${error.message}`, 'error');
+      setDeleteDialogOpen(false);
+    },
   });
 
   const handleOpen = (skill: Partial<Skill> | null = null) => {
@@ -91,6 +99,17 @@ const SkillsPage = () => {
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
+
+  const handleDeleteClick = useCallback((id: string, name: string) => {
+    setSkillToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (skillToDelete) {
+      deleteMutation.mutate(skillToDelete.id);
+    }
+  }, [skillToDelete, deleteMutation]);
 
   if (isLoading) return <CircularProgress />;
   if (error) return <Alert severity="error">Erreur lors du chargement des compétences</Alert>;
@@ -163,25 +182,51 @@ const SkillsPage = () => {
         <>
           <Tooltip title="Modifier">
             <IconButton 
-              size="small" 
-              onClick={() => handleOpen(params.row as Skill)}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpen(params.row as Skill);
+              }}
               aria-label="Modifier"
+              sx={{
+                color: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'primary.contrastText',
+                },
+                transition: 'all 0.2s',
+                p: '6px',
+                m: '0 4px',
+              }}
             >
-              <Edit />
+              <Edit fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Supprimer">
             <IconButton 
-              size="small" 
-              color="error"
-              onClick={() => {
-                if (window.confirm('Êtes-vous sûr de vouloir supprimer cette compétence ?')) {
-                  deleteMutation.mutate(params.row._id);
-                }
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(params.row._id, params.row.name);
               }}
+              disabled={deleteMutation.isPending}
               aria-label="Supprimer"
+              sx={{
+                color: 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText',
+                },
+                transition: 'all 0.2s',
+                p: '6px',
+                m: '0 4px',
+              }}
             >
-              <Delete />
+              {deleteMutation.isPending && skillToDelete?.id === params.row._id ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <Delete fontSize="small" />
+              )}
             </IconButton>
           </Tooltip>
         </>
@@ -190,7 +235,7 @@ const SkillsPage = () => {
   ];
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4, height: '100%' }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4, height: '100%' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
           Gestion des Compétences
@@ -252,57 +297,45 @@ const SkillsPage = () => {
             (skill.category && skill.category.toLowerCase().includes(searchText.toLowerCase()))
           )}
           columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
           getRowId={(row) => row._id}
-          disableSelectionOnClick
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          sortingMode="server"
           localeText={{
-            // Menu et en-têtes
-            columnMenuLabel: 'Menu',
+            // Textes de base
+            noRowsLabel: 'Aucune donnée disponible',
+            noResultsOverlayLabel: 'Aucun résultat trouvé.',
+            
+            // Barre d'outils
+            toolbarColumns: 'Colonnes',
+            toolbarFilters: 'Filtrer',
+            
+            // Menu des colonnes
             columnMenuShowColumns: 'Afficher les colonnes',
             columnMenuFilter: 'Filtrer',
-            columnMenuHideColumn: 'Masquer',
-            columnMenuUnsort: 'Non trié',
-            columnMenuSortAsc: 'Trier par ordre croissant',
-            columnMenuSortDesc: 'Trier par ordre décroissant',
-            columnHeaderSortIconLabel: 'Trier',
-            
-            // Panneau des colonnes
-            columnsPanelTextFieldLabel: 'Rechercher une colonne',
-            columnsPanelShowAllButton: 'Tout afficher',
-            columnsPanelHideAllButton: 'Tout masquer',
-            
-            // Filtres
-            filterPanelAddFilter: 'Ajouter un filtre',
-            filterPanelDeleteIconLabel: 'Supprimer',
-            filterPanelOperators: 'Opérateurs',
-            filterPanelOperatorAnd: 'Et',
-            filterPanelOperatorOr: 'Ou',
-            filterPanelColumns: 'Colonnes',
-            filterPanelInputLabel: 'Valeur',
-            filterPanelInputPlaceholder: 'Valeur du filtre',
-            filterOperatorContains: 'contient',
-            filterOperatorEquals: 'égal à',
-            filterOperatorStartsWith: 'commence par',
-            filterOperatorEndsWith: 'se termine par',
-            filterOperatorIsEmpty: 'est vide',
-            filterOperatorIsNotEmpty: 'n\'est pas vide',
-            filterOperatorIsAnyOf: 'fait partie de',
-            filterValueAny: 'n\'importe quelle valeur',
-            filterValueTrue: 'Oui',
-            filterValueFalse: 'Non',
             
             // Pagination
             MuiTablePagination: {
+              labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
+                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
               labelRowsPerPage: 'Lignes par page:',
-              labelDisplayedRows: ({ from, to, count }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-            },
-            
-            // Messages
-            noRowsLabel: 'Aucune donnée disponible',
-            noResultsOverlayLabel: 'Aucun résultat trouvé.',
-            errorOverlayDefaultLabel: 'Une erreur est survenue.'
+              getItemAriaLabel: (type: string) => {
+                switch (type) {
+                  case 'first':
+                    return 'Première page';
+                  case 'last':
+                    return 'Dernière page';
+                  case 'next':
+                    return 'Page suivante';
+                  case 'previous':
+                    return 'Page précédente';
+                  default:
+                    return '';
+                }
+              }
+            }
           }}
           sx={{
             flex: 1,
@@ -381,13 +414,51 @@ const SkillsPage = () => {
         </form>
       </Dialog>
 
+      {/* Boîte de dialogue de confirmation de suppression */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirmer la suppression
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer la compétence <strong>"{skillToDelete?.name}"</strong> ?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Cette action est irréversible et supprimera définitivement la compétence.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            autoFocus
+            disabled={deleteMutation.isPending}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            color="error"
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending ? <CircularProgress size={20} /> : <Delete />}
+          >
+            {deleteMutation.isPending ? 'Suppression...' : 'Supprimer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar pour les notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity as 'success' | 'error'} sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

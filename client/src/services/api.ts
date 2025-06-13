@@ -64,30 +64,82 @@ interface ApiResponse<T> {
   success: boolean;
 }
 
-// Configuration de l'URL de l'API
-// En mode développement, utilisez le proxy configuré dans vite.config.ts
-// En production, utilisez l'URL de l'API définie dans les variables d'environnement
-const getApiUrl = () => {
-  // En mode développement, utilisez le chemin relatif qui sera proxyfié par Vite
+// Configuration de l'URL de base de l'API
+const getBaseUrl = () => {
+  // En mode développement, on utilise le chemin racine avec /api/v1
+  // car le proxy Vite redirigera vers le bon serveur
   if (import.meta.env.DEV) {
     return '/api/v1';
   }
-  // En production, utilisez la variable d'environnement ou une URL par défaut
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+  // En production, utilisez l'URL complète du serveur backend avec /api/v1
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) + '/api/v1' : baseUrl + '/api/v1';
 };
 
 // Créer une instance d'axios avec l'URL de base configurée
 export const api = axios.create({
-  baseURL: getApiUrl(),
+  baseURL: getBaseUrl(),
   withCredentials: true, // Important pour les cookies d'authentification
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  // Activer la transmission des cookies cross-origin
+  withXSRFToken: true,
+  // Désactiver la transformation automatique des données pour les requêtes FormData
+  transformRequest: [
+    (data, headers) => {
+      // Si les données sont une instance de FormData, ne pas les transformer
+      if (data instanceof FormData) {
+        // Supprimer le Content-Type pour laisser le navigateur le définir avec la boundary
+        if (headers) {
+          delete headers['Content-Type'];
+        }
+        return data;
+      }
+      // Pour les autres types de données, utiliser la transformation par défaut
+      if (headers && headers['Content-Type'] === 'application/json') {
+        return JSON.stringify(data);
+      }
+      return data;
+    },
+  ],
 });
+
+// Intercepteur pour ajouter le token d'authentification aux requêtes sortantes
+api.interceptors.request.use(
+  (config) => {
+    // Récupérer le token depuis le localStorage
+    const token = localStorage.getItem('token');
+    
+    // Si un token existe, l'ajouter aux en-têtes
+    if (token && config.headers) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+      // S'assurer que les en-têtes de cookies sont correctement définis
+      config.withCredentials = true;
+    }
+    
+    // Pour les requêtes FormData, s'assurer que le Content-Type n'est pas défini
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Intercepteur pour gérer les erreurs CORS et les redirections
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Mettre à jour le token si présent dans la réponse
+    if (response.data && response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response;
+  },
   (error) => {
     if (error.response) {
       // Erreur CORS
@@ -98,18 +150,16 @@ api.interceptors.response.use(
       // Redirection en cas d'erreur 401 (Non autorisé)
       if (error.response.status === 401) {
         // Stocker l'URL actuelle pour rediriger après la connexion
-        localStorage.setItem('redirectAfterLogin', window.location.pathname);
-        // Rediriger vers la page de connexion
-        window.location.href = '/login';
-      }
-      
-      // Erreur CORS explicite
-      if (error.response.data?.message?.includes('CORS')) {
-        console.error('Erreur CORS:', error.response.data.message);
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/admin/login')) {
+          localStorage.setItem('redirectAfterLogin', currentPath);
+          // Supprimer le token expiré
+          localStorage.removeItem('token');
+          // Rediriger vers la page de connexion
+          window.location.href = '/admin/login';
+        }
       }
     }
-    
-    return Promise.reject(error);
   }
 );
 

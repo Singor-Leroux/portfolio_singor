@@ -24,28 +24,34 @@ export interface CertificationCreationPayload {
 // Interface for updating an existing certification (payload for PUT request)
 export type CertificationUpdatePayload = Partial<CertificationCreationPayload>;
 
-const CERTIFICATIONS_API_URL = '/api/v1/certifications'; // Assuming plural based on existing code
-
 export const getCertifications = async (): Promise<CertificationBE[]> => {
-  const response = await apiClient.get<{ data: CertificationBE[] }>(CERTIFICATIONS_API_URL);
+  const response = await apiClient.get<{ data: CertificationBE[] }>('/api/v1/certifications');
   return response.data.data;
 };
 
 export const getCertification = async (id: string): Promise<CertificationBE> => {
-  const response = await apiClient.get<{ data: CertificationBE }>(`${CERTIFICATIONS_API_URL}/${id}`);
+  const response = await apiClient.get<{ data: CertificationBE }>(`/api/v1/certifications/${id}`);
   return response.data.data;
 };
 
 export const createCertification = async (payload: FormData): Promise<CertificationBE> => {
-  const response = await apiClient.post<{ data: CertificationBE }>(CERTIFICATIONS_API_URL, payload);
+  const response = await apiClient.post<{ data: CertificationBE }>('/api/v1/certifications', payload, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data.data;
 };
 
 export const updateCertification = async (id: string, payload: FormData): Promise<CertificationBE> => {
-  const response = await apiClient.put<{ data: CertificationBE }>(`${CERTIFICATIONS_API_URL}/${id}`, payload);
+  const response = await apiClient.put<{ data: CertificationBE }>(`/api/v1/certifications/${id}`, payload, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data.data;
 };
 
 export const deleteCertification = async (id: string): Promise<void> => {
-  await apiClient.delete(`${CERTIFICATIONS_API_URL}/${id}`);
+  await apiClient.delete(`/api/v1/certifications/${id}`);
 };

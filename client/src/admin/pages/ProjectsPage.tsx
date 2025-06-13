@@ -119,6 +119,8 @@ const ProjectsPage = () => {
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || 'http://localhost:5000';
   
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string, title: string } | null>(null);
   
   const [openDialog, setOpenDialog] = useState(false);
   const [currentProject, setCurrentProject] = useState<ProjectFormState>(initialProjectFormState);
@@ -250,11 +252,24 @@ const ProjectsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       showSnackbar('Projet supprimé avec succès', 'success');
+      setDeleteDialogOpen(false);
     },
     onError: (error) => {
       showSnackbar(`Erreur lors de la suppression: ${error.message}`, 'error');
+      setDeleteDialogOpen(false);
     }
   });
+
+  const handleDeleteClick = (id: string, title: string) => {
+    setProjectToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (projectToDelete) {
+      deleteMutation.mutate(projectToDelete.id);
+    }
+  };
 
   // Gestion des dialogues
   const handleCloseDialog = () => {
@@ -709,13 +724,12 @@ const ProjectsPage = () => {
             size="small"
             onClick={(e) => {
               e.stopPropagation();
-              if (window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) {
-                deleteMutation.mutate(params.row._id);
-              }
+              handleDeleteClick(params.row._id, params.row.title);
             }}
             color="error"
+            disabled={deleteMutation.isPending}
           >
-            <DeleteIcon />
+            {deleteMutation.isPending ? <CircularProgress size={20} /> : <DeleteIcon />}
           </IconButton>
         </Box>
       ),
@@ -1325,6 +1339,43 @@ const ProjectsPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Boîte de dialogue de confirmation de suppression */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirmer la suppression
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer le projet <strong>"{projectToDelete?.title || ''}"</strong> ?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Cette action est irréversible et supprimera définitivement le projet.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            autoFocus
+            disabled={deleteMutation.isPending}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            color="error"
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending ? <CircularProgress size={20} /> : <DeleteIcon />}
+          >
+            {deleteMutation.isPending ? 'Suppression...' : 'Supprimer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Aperçu de l'image en plein écran */}
       {previewImage && (

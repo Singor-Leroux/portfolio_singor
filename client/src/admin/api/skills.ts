@@ -67,7 +67,7 @@ export const updateSkill = async (id: string, skill: SkillUpdatePayload): Promis
 };
 
 export const deleteSkill = async (id: string): Promise<void> => {
-  // La réponse de suppression est un peu différente, nous n'avons pas besoin de retourner son contenu ici
-  // mais nous pouvons vérifier la réponse si nécessaire.
   await apiClient.delete<BackendDeleteResponse>(`/api/v1/skills/${id}`);
+  // La réponse pour delete est { success: true, data: {} }, pas besoin de retourner quoi que ce soit ici
+  // mais nous pouvons vérifier la réponse si nécessaire.
 };

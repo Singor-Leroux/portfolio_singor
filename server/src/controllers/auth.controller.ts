@@ -179,18 +179,31 @@ const sendTokenResponse = (user: IUser, statusCode: number, res: Response) => {
   // Créer le token
   const token = user.generateAuthToken();
 
-  const options = {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Configuration de base du cookie
+  const cookieOptions: any = {
     expires: new Date(
       Date.now() + (process.env.JWT_COOKIE_EXPIRE ? parseInt(process.env.JWT_COOKIE_EXPIRE) : 30) * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
+    path: '/',
   };
+
+  // Configuration spécifique pour la production
+  if (isProduction) {
+    cookieOptions.sameSite = 'none' as const;
+    cookieOptions.domain = '.votredomaine.com';
+  } else {
+    // Configuration pour le développement
+    cookieOptions.sameSite = 'lax' as const;
+  }
 
   // Envoyer la réponse avec le token dans le cookie et le corps de la réponse
   res
     .status(statusCode)
-    .cookie('token', token, options)
+    .cookie('token', token, cookieOptions)
     .json({
       success: true,
       token,
@@ -207,13 +220,33 @@ const sendTokenResponse = (user: IUser, statusCode: number, res: Response) => {
 // @route   GET /api/auth/logout
 // @access  Privé
 export const logout = (req: Request, res: Response): void => {
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Configuration de base du cookie
+  const cookieOptions: any = {
+    expires: new Date(Date.now() + 10 * 1000), // Expire dans 10 secondes
     httpOnly: true,
-  });
+    secure: isProduction,
+    path: '/',
+  };
+
+  // Configuration spécifique pour la production
+  if (isProduction) {
+    cookieOptions.sameSite = 'none' as const;
+    cookieOptions.domain = '.votredomaine.com';
+  } else {
+    // Configuration pour le développement
+    cookieOptions.sameSite = 'lax' as const;
+  }
+
+  res.cookie('token', 'none', cookieOptions);
+  
+  // Supprimer également le token côté client via le header Set-Cookie
+  res.setHeader('Clear-Site-Data', '"cookies"');
 
   res.status(200).json({
     success: true,
     data: {},
+    message: 'Déconnexion réussie',
   });
 };

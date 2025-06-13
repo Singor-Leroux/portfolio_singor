@@ -82,6 +82,11 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
 // Configuration CORS de base réutilisable
 const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // En développement, autoriser toutes les origines pour faciliter le développement
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
     // Autoriser les requêtes sans origine (comme les applications mobiles ou Postman)
     if (!origin) {
       console.log('Requête sans origine (peut provenir d\'une application mobile ou Postman)');
@@ -111,17 +116,21 @@ const corsOptions: cors.CorsOptions = {
     'Date',
     'X-Api-Version',
     'X-CSRF-Token',
-    'X-HTTP-Method-Override'
+    'X-HTTP-Method-Override',
+    'Set-Cookie',
+    'Cookie'
   ],
   credentials: true,
   exposedHeaders: [
     'Content-Range', 
     'X-Total-Count',
     'Authorization',
-    'Content-Disposition'
+    'Content-Disposition',
+    'Set-Cookie',
+    'Clear-Site-Data'
   ],
   optionsSuccessStatus: 204, // Répondre avec 204 No Content pour les requêtes OPTIONS
-  preflightContinue: false,
+  preflightContinue: false, // Important pour les cookies cross-origin
   maxAge: 600 // Durée de mise en cache des pré-vérifications CORS en secondes
 };
 
@@ -161,11 +170,54 @@ connectDB();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Middleware pour parser les cookies
+app.use(cookieParser());
+
 // Middleware de sécurité
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
 // Configuration CORS pour les requêtes HTTP
-app.use(cors(corsOptions));
+app.use(cors({
+  ...corsOptions,
+  // Configuration spécifique pour les cookies cross-origin
+  credentials: true,
+  // Autoriser les méthodes nécessaires
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
+  // Autoriser les en-têtes nécessaires
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'X-Access-Token',
+    'X-Refresh-Token',
+    'X-XSRF-TOKEN',
+    'XSRF-TOKEN',
+    'X-Requested-With',
+    'Accept',
+    'Accept-Version',
+    'Content-Length',
+    'Content-MD5',
+    'Date',
+    'X-Api-Version',
+    'X-CSRF-Token',
+    'X-HTTP-Method-Override',
+    'Set-Cookie',
+    'Cookie'
+  ],
+  // Exposer les en-têtes nécessaires
+  exposedHeaders: [
+    'Content-Range',
+    'X-Total-Count',
+    'Authorization',
+    'Content-Disposition',
+    'Set-Cookie',
+    'Clear-Site-Data'
+  ]
+}));
+
+// Middleware pour gérer les requêtes OPTIONS (prévol)
+app.options('*', cors(corsOptions));
 
 // Ajouter l'instance io à l'objet app pour y accéder dans les contrôleurs
 app.set('io', io);

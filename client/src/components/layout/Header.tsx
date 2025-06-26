@@ -12,6 +12,14 @@ const Header: React.FC = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const location = useLocation();
   const isAdminPage = location.pathname.startsWith('/admin') || location.pathname.startsWith('/administration');
+  
+  // Log pour déboguer la valeur de user.cvUrl
+  useEffect(() => {
+    if (user) {
+      console.log('User data in Header:', user);
+      console.log('CV URL in Header:', user.cvUrl);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -137,14 +145,27 @@ const Header: React.FC = () => {
                 )
               )}
               
-              <a 
-                href="/resume.pdf" 
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
-                download
-              >
-                <Download size={16} />
-                CV
-              </a>
+              {user?.cvUrl ? (
+                <a 
+                  onClick={() => user.cvUrl && window.open(user.cvUrl, '_blank')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
+                  download
+                >
+                  <Download size={16} />
+                  CV
+                </a>
+              ) : (
+                <button
+                  disabled
+                  className="flex items-center gap-2 bg-gray-400 dark:bg-gray-600 text-white px-6 py-2 rounded-full cursor-not-allowed opacity-70"
+                  title="CV non disponible"
+                >
+                  <Download size={16} />
+                  CV indisponible
+                </button>
+              )}
             </div>
           </nav>
 

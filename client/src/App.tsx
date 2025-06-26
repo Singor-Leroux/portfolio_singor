@@ -8,6 +8,7 @@ import {
   useNavigate 
 } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { UserProvider } from './contexts/UserContext';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { 
   CircularProgress, 
@@ -24,7 +25,8 @@ import Certifications from './components/sections/Certifications';
 import Experience from './components/sections/Experience';
 import Contact from './components/sections/Contact';
 import Footer from './components/layout/Footer';
-import { LoginPage } from './pages/LoginPage';
+import { LoginPage } from './admin/pages/LoginPage';
+import { RegisterPage } from './admin/pages/RegisterPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { personalInfo } from './data';
 import AdminApp from './admin/AdminApp';
@@ -138,6 +140,7 @@ const AppContent = () => {
         {/* Routes publiques */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* Routes d'administration */}
@@ -188,7 +191,9 @@ function App() {
     <Router>
       <ThemeProvider theme={theme}>
         <AuthProvider>
-          <AppContent />
+          <UserProvider>
+            <AppContent />
+          </UserProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>

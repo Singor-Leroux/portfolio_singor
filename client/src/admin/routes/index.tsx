@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardPage } from '../pages/DashboardPage';
 import { LoginPage } from '../pages/LoginPage';
+import { RegisterPage } from '../pages/RegisterPage';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import SkillsPage from '../pages/SkillsPage';
@@ -21,8 +22,9 @@ const NotFound = () => (
 export const AppRoutes = () => {
   return (
     <Routes>
-      {/* Login route */}
+      {/* Auth routes */}
       <Route path="login" element={<LoginPage />} />
+      <Route path="register" element={<RegisterPage />} />
       
       {/* Redirect root to dashboard */}
       <Route index element={<Navigate to="dashboard" replace />} />

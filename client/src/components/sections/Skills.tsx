@@ -2,6 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '../../contexts/PortfolioContext';
 import { Skill } from '../../services/api';
 
+// Fonction utilitaire pour convertir le niveau en valeur numérique (1-4)
+const getLevelValue = (level: string | number): number => {
+  // Si le niveau est déjà un nombre, on s'assure qu'il est entre 1 et 4
+  if (typeof level === 'number') {
+    return Math.min(4, Math.max(1, level));
+  }
+  
+  // Si c'est une chaîne, on la convertit en nombre
+  switch(level) {
+    case 'Débutant': return 1;
+    case 'Intermédiaire': return 2;
+    case 'Confirmé': return 3;
+    case 'Expert': return 4;
+    default: return 1;
+  }
+};
+
 const Skills: React.FC = () => {
   const { skills, isLoading, isError } = usePortfolio();
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -114,7 +131,10 @@ const Skills: React.FC = () => {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2">
                 <div 
                   className="bg-blue-600 h-2.5 rounded-full"
-                  style={{ width: `${(skill.level / 5) * 100}%`, transition: 'width 1s ease-out' }}
+                  style={{ 
+                    width: `${(getLevelValue(skill.level) / 4) * 100}%`, 
+                    transition: 'width 1s ease-out' 
+                  }}
                 ></div>
               </div>
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">

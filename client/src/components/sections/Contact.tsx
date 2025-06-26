@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { Send, MapPin, Phone, Mail, Github as GitHub, Linkedin, Twitter } from 'lucide-react';
-import { personalInfo } from '../../data';
+import { Send, MapPin, Phone, Mail, Github as GitHub, Linkedin, Twitter, CheckCircle, AlertCircle } from 'lucide-react';
+import { sendContactMessage } from '../../services/contactService';
+import { useUser } from '../../contexts/UserContext';
+import { FormattedUserProfile } from '../../types/user';
 
 const Contact: React.FC = () => {
+  // All hooks must be called at the top level, before any conditional returns
+  const { userData, loading } = useUser() as { 
+    userData: FormattedUserProfile; 
+    loading: boolean;
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -11,7 +19,34 @@ const Contact: React.FC = () => {
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
+  // Effet pour effacer le message de statut après 10 secondes
+  React.useEffect(() => {
+    if (submitStatus) {
+      const timer = setTimeout(() => {
+        setSubmitStatus(null);
+      }, 10000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [submitStatus]);
+
+  // Loading state
+  if (loading || !userData) {
+    return (
+      <section id="contact" className="py-20 bg-gray-50 dark:bg-gray-900">
+        <div className="container mx-auto px-4">
+          <div className="animate-pulse h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mx-auto mb-4"></div>
+          <div className="w-20 h-1 bg-blue-600 mx-auto mb-8"></div>
+          <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+        </div>
+      </section>
+    );
+  }
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -21,26 +56,45 @@ const Contact: React.FC = () => {
     }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        message: ''
-      });
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+    
+    try {
+      const result = await sendContactMessage(formData);
       
-      // Reset the submitted state after 5 seconds
-      setTimeout(() => {
-        setSubmitted(false);
-      }, 5000);
-    }, 1500);
+      if (result.success) {
+        // Réinitialiser le formulaire en cas de succès
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+        
+        setSubmitStatus({
+          success: true,
+          message: 'Votre message a été envoyé avec succès ! Je vous répondrai dès que possible.'
+        });
+      } else {
+        setSubmitStatus({
+          success: false,
+          message: result.error || 'Une erreur est survenue lors de l\'envoi du message.'
+        });
+      }
+    } catch (error) {
+      console.error('Erreur inattendue:', error);
+      setSubmitStatus({
+        success: false,
+        message: 'Une erreur inattendue est survenue. Veuillez réessayer plus tard.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -69,7 +123,7 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-800 dark:text-gray-300 mb-1">Localisation</h4>
-                  <p className="text-gray-600 dark:text-blue-400">{personalInfo.location}</p>
+                  <p className="text-gray-600 dark:text-blue-400">{userData.address}</p>
                 </div>
               </div>
               
@@ -79,8 +133,8 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-800 dark:text-gray-300 mb-1">Email</h4>
-                  <a href={`mailto:${personalInfo.email}`} className="text-gray-600 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
-                    {personalInfo.email}
+                  <a href={`mailto:${userData.email}`} className="text-gray-600 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+                    {userData.email}
                   </a>
                 </div>
               </div>
@@ -91,9 +145,13 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-800 dark:text-gray-300 mb-1">Téléphone</h4>
-                  <a href={`tel:${personalInfo.phone}`} className="text-gray-600 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
-                    {personalInfo.phone}
-                  </a>
+                  {userData.phone ? (
+                    <a href={`tel:${userData.phone}`} className="text-gray-600 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+                      {userData.phone}
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">Non spécifié</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -104,7 +162,7 @@ const Contact: React.FC = () => {
             
             <div className="flex space-x-4">
               <a 
-                href={personalInfo.socialLinks.github}
+                href={userData.socialLinks?.github || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white dark:text-blue-500 p-3 rounded-lg shadow-sm hover:shadow-md hover:text-blue-600 dark:hover:text-white dark:hover:bg-blue-500 transition-all duration-300"
@@ -113,7 +171,7 @@ const Contact: React.FC = () => {
                 <GitHub />
               </a>
               <a 
-                href={personalInfo.socialLinks.linkedin}
+                href={userData.socialLinks?.linkedin || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white dark:text-blue-500 p-3 rounded-lg shadow-sm hover:shadow-md hover:text-blue-600 dark:hover:text-white dark:hover:bg-blue-500 transition-all duration-300"
@@ -122,7 +180,7 @@ const Contact: React.FC = () => {
                 <Linkedin />
               </a>
               <a 
-                href={personalInfo.socialLinks.twitter}
+                href={userData.socialLinks?.twitter || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white dark:text-blue-500 p-3 rounded-lg shadow-sm hover:shadow-md hover:text-blue-600 dark:hover:text-white dark:hover:bg-blue-500 transition-all duration-400"
@@ -139,10 +197,25 @@ const Contact: React.FC = () => {
                 Envoyez-moi un message
               </h3>
               
-              {submitted ? (
-                <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-lg mb-6">
-                  <p className="font-medium">Message envoyé avec succès !</p>
-                  <p>Merci pour votre message. Je vous répondrai dans les plus brefs délais.</p>
+              {submitStatus ? (
+                <div className={`p-4 rounded-lg mb-6 ${
+                  submitStatus.success 
+                    ? 'bg-green-50 border border-green-200 text-green-700' 
+                    : 'bg-red-50 border border-red-200 text-red-700'
+                }`}>
+                  <div className="flex items-start">
+                    {submitStatus.success ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-medium">
+                        {submitStatus.success ? 'Message envoyé avec succès !' : 'Erreur lors de l\'envoi'}
+                      </p>
+                      <p>{submitStatus.message}</p>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit}>
@@ -211,28 +284,31 @@ const Contact: React.FC = () => {
                       placeholder="Votre message..."
                     ></textarea>
                   </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`flex items-center justify-center w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${
-                      isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      <>
-                        <span>Envoyer</span>
-                        <Send size={16} className="ml-2" />
-                      </>
-                    )}
+                                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className={`flex items-center justify-center w-full md:w-auto px-8 py-3 ${
+                        isSubmitting 
+                          ? 'bg-blue-500' 
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      } text-white rounded-lg transition-colors ${
+                        isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Envoi en cours...
+                        </>
+                      ) : (
+                        <>
+                          <span>Envoyer le message</span>
+                          <Send size={16} className="ml-2" />
+                        </>
+                      )}
                   </button>
                 </form>
               )}

@@ -1,0 +1,864 @@
+import React, { useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../config/axios';
+import {
+  Container,
+  Typography,
+  Button,
+  Box,
+  Card,
+  CardContent,
+  TextField,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Paper,
+  IconButton,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  TablePagination,
+  CircularProgress,
+  Chip,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Menu as MuiMenu,
+  Grid,
+  SelectChangeEvent,
+  styled,
+  Snackbar,
+  Alert,
+  Tooltip
+} from '@mui/material';
+
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
+  Person as PersonIcon,
+  AdminPanelSettings as AdminIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
+
+// Composant Grid avec styles personnalisés
+const StyledGrid = styled(Grid)(({ theme }) => ({
+  // Ajoutez des styles personnalisés si nécessaire
+}));
+
+// Composant GridItem avec typage correct pour les propriétés de Grid
+interface GridItemProps extends React.ComponentProps<typeof Grid> {
+  item?: boolean;
+  xs?: number;
+  sm?: number;
+  md?: number;
+  lg?: number;
+  xl?: number;
+}
+
+const GridItem = ({ item = true, ...props }: GridItemProps) => (
+  <Grid item={item} {...props} />
+);
+
+interface User {
+  _id: string;
+  id: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  title?: string;
+  description?: string;
+  email: string;
+  role: 'user' | 'admin' | string;
+  status: 'pending' | 'active' | 'suspended' | 'banned';
+  isEmailVerified: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any; // Pour gérer d'autres propriétés potentielles
+}
+
+interface UserFormState {
+  _id?: string;
+  name: string;
+  email: string;
+  role: 'user' | 'admin';
+  password?: string;
+  confirmPassword?: string;
+}
+
+const initialUserFormState: UserFormState = {
+  name: '',
+  email: '',
+  role: 'user',
+  password: '',
+  confirmPassword: ''
+};
+
+const UsersPage: React.FC = () => {
+    // États de pagination et filtres
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  
+  // États pour les dialogues et menus
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  
+  // Snackbar state
+  type SnackbarSeverity = 'success' | 'error' | 'info' | 'warning';
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: SnackbarSeverity;
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+  
+  // États pour le formulaire
+  const [userForm, setUserForm] = useState<UserFormState>(initialUserFormState);
+  
+  // États pour la gestion des utilisateurs
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Récupération des données utilisateurs avec React Query
+  const { 
+    data: response = { data: [] }, 
+    isLoading: isLoadingUsers, 
+    error: usersError 
+  } = useQuery<{ data: User[] }>({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data } = await api.get('/users');
+      return data;
+    }
+  });
+  
+  const users = response?.data || [];
+  
+  // Gestion de la modale utilisateur
+  const handleOpenUserDialog = (user: User | null = null) => {
+    if (user) {
+      // Mode édition
+      setUserForm({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role as 'user' | 'admin',
+        password: '',
+        confirmPassword: ''
+      });
+      setIsEditing(true);
+    } else {
+      // Mode création
+      setUserForm(initialUserFormState);
+      setIsEditing(false);
+    }
+    setUserDialogOpen(true);
+    setFormErrors({});
+  };
+
+  const handleCloseUserDialog = () => {
+    setUserDialogOpen(false);
+    setUserForm(initialUserFormState);
+    setFormErrors({});
+  };
+
+  // Validation du formulaire
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!userForm.name.trim()) {
+      errors.name = 'Le nom est requis';
+    }
+    
+    if (!userForm.email.trim()) {
+      errors.email = 'L\'email est requis';
+    } else if (!/\S+@\S+\.\S+/.test(userForm.email)) {
+      errors.email = 'Format d\'email invalide';
+    }
+    
+    if (!isEditing && !userForm.password) {
+      errors.password = 'Le mot de passe est requis';
+    } else if (userForm.password && userForm.password.length < 6) {
+      errors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    }
+    
+    if (userForm.password !== userForm.confirmPassword) {
+      errors.confirmPassword = 'Les mots de passe ne correspondent pas';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Gestion de la soumission du formulaire
+  const handleSubmitUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const userData = {
+        name: userForm.name,
+        email: userForm.email,
+        role: userForm.role,
+        ...(userForm.password && { password: userForm.password })
+      };
+      
+      if (isEditing && userForm._id) {
+        // Mise à jour de l'utilisateur existant
+        await updateUser(userForm._id, userData);
+        showSnackbar('Utilisateur mis à jour avec succès', 'success');
+      } else {
+        // Création d'un nouvel utilisateur
+        await createUser(userData);
+        showSnackbar('Utilisateur créé avec succès', 'success');
+      }
+      
+      handleCloseUserDialog();
+      queryClient.invalidateQueries(['users']);
+    } catch (error: any) {
+      showSnackbar(`Erreur: ${error.response?.data?.message || error.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity,
+    });
+  };
+  
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Suppression de la déclaration en double de useQuery pour les utilisateurs
+  // Utilisation des variables déjà déclarées : users, isLoadingUsers, usersError
+
+  // Fonction pour créer un nouvel utilisateur
+  const createUser = async (userData: Omit<UserFormState, '_id' | 'confirmPassword'>) => {
+    const response = await api.post('/users', userData);
+    return response.data;
+  };
+
+  // Fonction pour mettre à jour un utilisateur
+  const updateUser = async (userId: string, userData: Partial<UserFormState>) => {
+    const response = await api.put(`/users/${userId}`, userData);
+    return response.data;
+  };
+
+  // Mutation pour supprimer un utilisateur
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await api.delete(`/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      showSnackbar('Utilisateur supprimé avec succès', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+      showSnackbar('Erreur lors de la suppression de l\'utilisateur', 'error');
+    },
+  });
+
+  // Mutation pour changer le statut d'un utilisateur
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ userId, status }: { userId: string; status: 'active' | 'suspended' }) => {
+      await api.put(`/users/${userId}/status`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      showSnackbar('Statut mis à jour avec succès', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Erreur lors du changement de statut:', error);
+      showSnackbar('Erreur lors de la modification du statut', 'error');
+    },
+  });
+
+  // Mutation pour changer le rôle d'un utilisateur
+  const changeRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: 'user' | 'admin' }) => {
+      await api.put(`/users/${userId}/role`, { role });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      showSnackbar('Rôle mis à jour avec succès', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Erreur lors du changement de rôle:', error);
+      showSnackbar('Erreur lors de la mise à jour du rôle', 'error');
+    },
+  });
+
+  // Gestion du menu contextuel
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedUser(user);
+  };
+  
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedUser(null);
+  };
+
+  // Gestion de la pagination
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Filtrage des utilisateurs
+  const filteredUsers = (users || []).filter((user: User) => {
+    // Vérification des propriétés avant d'appeler toLowerCase()
+    const userName = user?.name || '';
+    const userEmail = user?.email || '';
+    const userStatus = user?.status || '';
+    const userRole = user?.role || '';
+
+    const searchTermLower = searchTerm.toLowerCase();
+    const matchesSearch = userName.toLowerCase().includes(searchTermLower) ||
+                         userEmail.toLowerCase().includes(searchTermLower);
+    
+    const matchesStatus = statusFilter === 'all' || userStatus === statusFilter;
+    const matchesRole = roleFilter === 'all' || userRole === roleFilter;
+
+    return matchesSearch && matchesStatus && matchesRole;
+  });
+
+  // Calcul des lignes vides pour la pagination
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredUsers.length) : 0;
+
+  // Fonction pour formater la date
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('fr-FR', options);
+  };
+
+  // Rendu du statut avec une puce de couleur
+  const renderStatusChip = (status: string) => {
+    const statusMap = {
+      active: { label: 'Actif', color: 'success' as const },
+      suspended: { label: 'Suspendu', color: 'error' as const },
+      pending: { label: 'En attente', color: 'warning' as const },
+      banned: { label: 'Banni', color: 'error' as const },
+    };
+
+    const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, color: 'default' as const };
+    
+    return (
+      <Chip 
+        label={statusInfo.label} 
+        color={statusInfo.color} 
+        size="small"
+        variant="outlined"
+      />
+    );
+  };
+
+  // Gestion des actions
+  const handleDeleteClick = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+    try {
+      await deleteUserMutation.mutateAsync(selectedUser._id);
+      setDeleteDialogOpen(false);
+      showSnackbar('Utilisateur supprimé avec succès', 'success');
+    } catch (error) {
+      showSnackbar('Erreur lors de la suppression de l\'utilisateur', 'error');
+    }
+  };
+
+  const toggleUserStatus = async (userId: string) => {
+    try {
+      const user = users?.find((u: User) => u._id === userId);
+      if (!user) return;
+      
+      const newStatus = user.status === 'active' ? 'suspended' : 'active';
+      await toggleStatusMutation.mutateAsync({ userId, status: newStatus });
+      showSnackbar(`Statut de l'utilisateur mis à jour`, 'success');
+    } catch (error) {
+      showSnackbar('Erreur lors de la mise à jour du statut', 'error');
+    }
+  };
+
+  const changeUserRole = async (userId: string, newRole: 'user' | 'admin') => {
+    try {
+      await changeRoleMutation.mutateAsync({ userId, role: newRole });
+      showSnackbar('Rôle de l\'utilisateur mis à jour', 'success');
+    } catch (error) {
+      showSnackbar('Erreur lors du changement de rôle', 'error');
+    }
+  };
+
+  if (isLoadingUsers) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (usersError) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <Typography color="error">
+          Erreur lors du chargement des utilisateurs. Veuillez réessayer.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Gestion des utilisateurs
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenUserDialog()}
+        >
+          Ajouter un utilisateur
+        </Button>
+      </Box>
+
+      <Card>
+        <CardContent>
+          <Grid container spacing={3}>
+            <GridItem xs={12} sm={6} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Total Users</Typography>
+                  <Typography variant="h4">{users.length}</Typography>
+                </CardContent>
+              </Card>
+            </GridItem>
+            <GridItem xs={12} sm={6} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Active Users</Typography>
+                  <Typography variant="h4">
+                    {users.filter((user: User) => user.status === 'active').length}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </GridItem>
+            <GridItem xs={12} sm={6} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Admin Users</Typography>
+                  <Typography variant="h4">
+                    {users.filter((user: User) => user.role === 'admin').length}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </GridItem>
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 3, mt: 3 }}>
+            <GridItem xs={12} sm={6} md={4}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Rechercher un utilisateur..."
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                }}
+              />
+            </GridItem>
+            <GridItem xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Statut</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Statut"
+                  onChange={(event: SelectChangeEvent) => setStatusFilter(event.target.value)}
+                >
+                  <MenuItem value="all">Tous les statuts</MenuItem>
+                  <MenuItem value="active">Actif</MenuItem>
+                  <MenuItem value="suspended">Suspendu</MenuItem>
+                  <MenuItem value="pending">En attente</MenuItem>
+                  <MenuItem value="banned">Banni</MenuItem>
+                </Select>
+              </FormControl>
+            </GridItem>
+            <GridItem xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Rôle</InputLabel>
+                <Select
+                  value={roleFilter}
+                  label="Rôle"
+                  onChange={(event: SelectChangeEvent) => setRoleFilter(event.target.value)}
+                >
+                  <MenuItem value="all">Tous les rôles</MenuItem>
+                  <MenuItem value="admin">Administrateur</MenuItem>
+                  <MenuItem value="user">Utilisateur</MenuItem>
+                </Select>
+              </FormControl>
+            </GridItem>
+          </Grid>
+          
+          <TableContainer component={Paper} sx={{ mt: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Avatar</TableCell>
+                <TableCell>Nom</TableCell>
+                <TableCell>Prénom</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Titre</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Rôle</TableCell>
+                <TableCell>Statut</TableCell>
+                <TableCell>Dernière connexion</TableCell>
+                <TableCell>Inscription</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((user: User) => (
+                    <TableRow key={user._id} hover>
+                      <TableCell>
+                        <Avatar>
+                          {user?.name?.charAt(0)?.toUpperCase() || '?'}
+                        </Avatar>
+                      </TableCell>
+                      <TableCell>{user.lastName || '-'}</TableCell>
+                      <TableCell>{user.firstName || '-'}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.title || '-'}</TableCell>
+                      <TableCell>
+                        <Tooltip title={user.description || 'Aucune description'}>
+                          <Typography noWrap sx={{ maxWidth: '200px' }}>
+                            {user.description ? 
+                              (user.description.length > 30 ? 
+                                `${user.description.substring(0, 30)}...` : 
+                                user.description) : 
+                              '-'}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                          color={user.role === 'admin' ? 'primary' : 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {renderStatusChip(user.status)}
+                      </TableCell>
+                      <TableCell>
+                        {user.lastLogin ? formatDate(user.lastLogin) : 'Jamais'}
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(user.createdAt)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ width: '80px' }}>
+                        <Box display="flex" justifyContent="flex-end">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMenuOpen(e, user);
+                            }}
+                            disabled={isSubmitting || user.id === currentUser?.id}
+                            aria-label="Actions"
+                            sx={{
+                              '&:hover': {
+                                backgroundColor: 'action.hover',
+                              },
+                            }}
+                          >
+                            <MoreVertIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="textSecondary">
+                      Aucun utilisateur trouvé
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {emptyRows > 0 && (
+                <TableRow style={{ height: 53 * emptyRows }}>
+                  <TableCell colSpan={7} />
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={filteredUsers.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Lignes par page :"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+          }
+        />
+      </CardContent>
+    </Card>
+
+    {/* Menu contextuel */}
+    <MuiMenu
+      anchorEl={anchorEl}
+      open={Boolean(anchorEl)}
+      onClose={handleMenuClose}
+      PaperProps={{
+        elevation: 3,
+        sx: { width: 200 }
+      }}
+    >
+      <MenuItem onClick={() => {
+        if (selectedUser) {
+          handleOpenUserDialog(selectedUser);
+          handleMenuClose();
+        }
+      }}>
+        <EditIcon fontSize="small" sx={{ mr: 1 }} />
+        Modifier
+      </MenuItem>
+      <MenuItem onClick={() => {
+        if (selectedUser) {
+          toggleUserStatus(selectedUser._id);
+          handleMenuClose();
+        }
+      }}>
+        {selectedUser?.status === 'active' ? (
+          <>
+            <LockIcon fontSize="small" sx={{ mr: 1 }} />
+            Suspendre
+          </>
+        ) : (
+          <>
+            <LockOpenIcon fontSize="small" sx={{ mr: 1 }} />
+            Activer
+          </>
+        )}
+      </MenuItem>
+      <MenuItem onClick={() => {
+        if (selectedUser) {
+          changeUserRole(selectedUser._id, selectedUser.role === 'admin' ? 'user' : 'admin');
+          handleMenuClose();
+        }
+      }}>
+        <AdminIcon fontSize="small" sx={{ mr: 1 }} />
+        {selectedUser?.role === 'admin' ? 'Rétrograder' : 'Promouvoir admin'}
+      </MenuItem>
+      <MenuItem 
+        onClick={() => {
+          if (selectedUser) {
+            handleDeleteClick(selectedUser);
+            handleMenuClose();
+          }
+        }}
+        sx={{ color: 'error.main' }}
+      >
+        <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+        Supprimer
+      </MenuItem>
+    </MuiMenu>
+
+    {/* Dialogue de confirmation de suppression */}
+    <Dialog
+      open={deleteDialogOpen}
+      onClose={() => setDeleteDialogOpen(false)}
+    >
+      <DialogTitle>Confirmer la suppression</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Êtes-vous sûr de vouloir supprimer l'utilisateur {selectedUser?.name} ?
+          Cette action est irréversible.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+        <Button 
+          onClick={handleConfirmDelete} 
+          color="error"
+          disabled={isSubmitting}
+          startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+        >
+          Supprimer
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* Modale d'ajout/modification d'utilisateur */}
+    <Dialog open={userDialogOpen} onClose={handleCloseUserDialog} maxWidth="sm" fullWidth>
+      <DialogTitle>{isEditing ? 'Modifier utilisateur' : 'Nouvel utilisateur'}</DialogTitle>
+      <DialogContent>
+        <Box component="form" onSubmit={handleSubmitUser} sx={{ mt: 2 }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="name"
+            label="Nom complet"
+            name="name"
+            autoComplete="name"
+            value={userForm.name}
+            onChange={(e) => setUserForm({...userForm, name: e.target.value})}
+            error={!!formErrors.name}
+            helperText={formErrors.name}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Adresse email"
+            name="email"
+            autoComplete="email"
+            value={userForm.email}
+            onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+            error={!!formErrors.email}
+            helperText={formErrors.email}
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="role-label">Rôle</InputLabel>
+            <Select
+              labelId="role-label"
+              id="role"
+              value={userForm.role}
+              label="Rôle"
+              onChange={(e) => setUserForm({...userForm, role: e.target.value as 'user' | 'admin'})}
+            >
+              <MenuItem value="user">Utilisateur</MenuItem>
+              <MenuItem value="admin">Administrateur</MenuItem>
+            </Select>
+          </FormControl>
+          {!isEditing && (
+            <>
+              <TextField
+                margin="normal"
+                required={!isEditing}
+                fullWidth
+                name="password"
+                label="Mot de passe"
+                type="password"
+                id="password"
+                autoComplete="new-password"
+                value={userForm.password || ''}
+                onChange={(e) => setUserForm({...userForm, password: e.target.value})}
+                error={!!formErrors.password}
+                helperText={formErrors.password}
+              />
+              <TextField
+                margin="normal"
+                required={!isEditing}
+                fullWidth
+                name="confirmPassword"
+                label="Confirmer le mot de passe"
+                type="password"
+                id="confirmPassword"
+                value={userForm.confirmPassword || ''}
+                onChange={(e) => setUserForm({...userForm, confirmPassword: e.target.value})}
+                error={!!formErrors.confirmPassword}
+                helperText={formErrors.confirmPassword}
+              />
+            </>
+          )}
+          <DialogActions sx={{ px: 0 }}>
+            <Button onClick={handleCloseUserDialog}>Annuler</Button>
+            <Button 
+              type="submit"
+              variant="contained"
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+            >
+              {isEditing ? 'Mettre à jour' : 'Créer'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </DialogContent>
+    </Dialog>
+
+    {/* Snackbar pour les notifications */}
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={6000}
+      onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+      message={snackbar.message}
+      action={
+        <IconButton
+          size="small"
+          color="inherit"
+          onClick={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      }
+    >
+      <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+  </Container>
+);
+};
+
+export default UsersPage;

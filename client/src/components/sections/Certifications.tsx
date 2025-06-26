@@ -91,10 +91,10 @@ const Certifications: React.FC = () => {
                     {cert.date}
                   </p>
                   
-                  {cert.verificationUrl && (
+                  {cert.credentialUrl && (
                     <div className="mt-auto">
                       <a 
-                        href={cert.verificationUrl} 
+                        href={cert.credentialUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 transition-colors"

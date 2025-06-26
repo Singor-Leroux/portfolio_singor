@@ -28,10 +28,25 @@ export const validate = (validations: ValidationChain[]) => {
 
 // Règles de validation pour l'inscription
 export const registerValidation = [
-  body('name')
+  body('firstName')
     .trim()
-    .notEmpty().withMessage('Le nom est requis')
-    .isLength({ min: 2, max: 50 }).withMessage('Le nom doit contenir entre 2 et 50 caractères'),
+    .notEmpty().withMessage('Le prénom est requis')
+    .isLength({ min: 2, max: 50 }).withMessage('Le prénom doit contenir entre 2 et 50 caractères'),
+  
+  body('lastName')
+    .trim()
+    .notEmpty().withMessage('Le nom de famille est requis')
+    .isLength({ min: 2, max: 50 }).withMessage('Le nom de famille doit contenir entre 2 et 50 caractères'),
+  
+  body('title')
+    .trim()
+    .notEmpty().withMessage('Le titre est requis')
+    .isLength({ min: 2, max: 100 }).withMessage('Le titre doit contenir entre 2 et 100 caractères'),
+  
+  body('about')
+    .trim()
+    .optional()
+    .isLength({ max: 1000 }).withMessage('La description ne doit pas dépasser 1000 caractères'),
   
   body('email')
     .trim()
@@ -96,11 +111,28 @@ export const updatePasswordValidation = [
 
 // Règles de validation pour la mise à jour du profil
 export const updateProfileValidation = [
-  body('name')
+  body('firstName')
     .optional()
     .trim()
-    .notEmpty().withMessage('Le nom ne peut pas être vide')
-    .isLength({ min: 2, max: 50 }).withMessage('Le nom doit contenir entre 2 et 50 caractères'),
+    .notEmpty().withMessage('Le prénom ne peut pas être vide')
+    .isLength({ min: 2, max: 50 }).withMessage('Le prénom doit contenir entre 2 et 50 caractères'),
+  
+  body('lastName')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Le nom de famille ne peut pas être vide')
+    .isLength({ min: 2, max: 50 }).withMessage('Le nom de famille doit contenir entre 2 et 50 caractères'),
+  
+  body('title')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Le titre ne peut pas être vide')
+    .isLength({ min: 2, max: 100 }).withMessage('Le titre doit contenir entre 2 et 100 caractères'),
+  
+  body('about')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 }).withMessage('La description ne doit pas dépasser 1000 caractères'),
   
   body('email')
     .optional()
@@ -108,6 +140,31 @@ export const updateProfileValidation = [
     .notEmpty().withMessage('L\'email ne peut pas être vide')
     .isEmail().withMessage('Veuillez fournir un email valide')
     .normalizeEmail(),
+    
+  body('phone')
+    .optional()
+    .trim()
+    .matches(/^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/).withMessage('Numéro de téléphone invalide'),
+    
+  body('address')
+    .optional()
+    .trim()
+    .isLength({ max: 255 }).withMessage('L\'adresse ne doit pas dépasser 255 caractères'),
+    
+  body('socialLinks.github')
+    .optional()
+    .trim()
+    .isURL().withMessage('Le lien GitHub doit être une URL valide'),
+    
+  body('socialLinks.linkedin')
+    .optional()
+    .trim()
+    .isURL().withMessage('Le lien LinkedIn doit être une URL valide'),
+    
+  body('socialLinks.twitter')
+    .optional()
+    .trim()
+    .isURL().withMessage('Le lien Twitter doit être une URL valide'),
 ];
 
 // Règles de validation pour la réinitialisation du mot de passe

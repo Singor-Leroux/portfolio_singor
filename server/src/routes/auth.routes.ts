@@ -6,6 +6,8 @@ import {
   updateDetails, 
   updatePassword, 
   logout,
+  confirmEmail,
+  resendVerificationEmail,
   IAuthResponse
 } from '../controllers/auth.controller';
 import { protect } from '../middleware/auth.middleware';
@@ -21,6 +23,8 @@ const router = Router();
 // Routes publiques
 router.post('/register', registerValidation, register as unknown as RequestHandler);
 router.post('/login', loginValidation, login as unknown as RequestHandler);
+router.get('/confirm-email', confirmEmail as unknown as RequestHandler);
+router.post('/resend-verification-email', resendVerificationEmail as unknown as RequestHandler);
 
 // Middleware de protection des routes
 router.use(protect as unknown as RequestHandler);

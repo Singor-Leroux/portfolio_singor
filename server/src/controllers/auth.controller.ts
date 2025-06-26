@@ -1,11 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/user.model';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
+import User from '../models/user.model';
+import { IUser } from '../models/user.model';
 import { asyncHandler } from '../utils/asyncHandler';
-
-// Importer l'interface AuthRequest depuis le middleware d'authentification
 import { AuthRequest } from '../middleware/auth.middleware';
+import { sendConfirmationEmail } from '../utils/email.utils';
+import { 
+  USER_STATUS, 
+  TOKEN_TYPES, 
+  EMAIL_VERIFICATION_EXPIRES_IN,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from '../constants/auth.constants';
 
 // Interface pour la réponse JWT
 export interface IAuthResponse {
@@ -13,8 +21,17 @@ export interface IAuthResponse {
   token?: string;
   user?: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
+    title: string;
     email: string;
+    phoneNumber?: string;
+    address?: string;
+    socialLinks?: {
+      github?: string;
+      linkedin?: string;
+      twitter?: string;
+    };
     role: string;
   };
   message?: string;
@@ -29,46 +46,199 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      errors: errors.array(),
+      errors: errors.array({ onlyFirstError: true }),
     });
   }
 
-  const { name, email, password, role } = req.body;
+  const { 
+    firstName, 
+    lastName, 
+    title, 
+    about, 
+    email, 
+    password, 
+    phoneNumber, 
+    address, 
+    github, 
+    linkedin, 
+    twitter 
+  } = req.body;
 
   // Vérifier si l'utilisateur existe déjà
   const userExists = await User.findOne({ email });
   if (userExists) {
     return res.status(400).json({
       success: false,
-      message: 'Un utilisateur avec cet email existe déjà',
+      message: ERROR_MESSAGES.USER_EXISTS,
     });
   }
 
-  // Créer l'utilisateur
+  // Créer un jeton de vérification d'email
+  const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+  const emailVerificationExpires = new Date(Date.now() + EMAIL_VERIFICATION_EXPIRES_IN);
+
+  // Créer l'utilisateur avec le statut 'pending' et le jeton de vérification
   const user = await User.create({
-    name,
+    firstName,
+    lastName,
+    title,
+    about,
     email,
     password,
-    role: role || 'user',
+    phoneNumber,
+    address,
+    socialLinks: {
+      github,
+      linkedin,
+      twitter
+    },
+    role: 'user',
+    status: USER_STATUS.PENDING,
+    emailVerificationToken,
+    emailVerificationExpires,
   });
 
-  // Envoyer la réponse avec le token
-  return sendTokenResponse(user, 201, res);
+  // Envoyer l'email de confirmation
+  const emailSent = await sendConfirmationEmail({
+        to: user.email,
+        name: user.firstName,
+        token: emailVerificationToken
+      });
+
+  if (!emailSent) {
+    console.error('Failed to send confirmation email to:', user.email);
+    // Ne pas renvoyer d'erreur à l'utilisateur pour des raisons de sécurité
+  }
+
+  // Répondre avec succès (sans token d'accès)
+  res.status(201).json({
+    success: true,
+    message: SUCCESS_MESSAGES.REGISTRATION_SUCCESS,
+    data: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      title: user.title,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      address: user.address,
+      socialLinks: user.socialLinks,
+      status: user.status,
+      isEmailVerified: user.isEmailVerified
+    }
+  });
+});
+
+// @desc    Confirmer l'email d'un utilisateur
+// @route   GET /api/auth/confirm-email
+// @access  Public
+export const confirmEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      message: 'Token de vérification manquant',
+    });
+  }
+
+  // Trouver l'utilisateur avec ce token non expiré
+  const user = await User.findOne({
+    emailVerificationToken: token.toString(),
+    emailVerificationExpires: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: 'Lien de vérification invalide ou expiré',
+    });
+  }
+
+  // Mettre à jour l'utilisateur
+  user.status = USER_STATUS.ACTIVE;
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  
+  await user.save({ validateBeforeSave: false });
+
+  // Rediriger vers la page de connexion avec un message de succès
+  const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  return res.redirect(`${frontendUrl}/login?verified=true`);
+});
+
+// @desc    Renvoyer l'email de confirmation
+// @route   POST /api/auth/resend-verification-email
+// @access  Public
+export const resendVerificationEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Veuillez fournir une adresse email',
+    });
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'Aucun utilisateur trouvé avec cette adresse email',
+    });
+  }
+
+  if (user.isEmailVerified) {
+    return res.status(400).json({
+      success: false,
+      message: 'Cet email a déjà été vérifié',
+    });
+  }
+
+  // Créer un nouveau jeton de vérification
+  const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+  const emailVerificationExpires = new Date(Date.now() + EMAIL_VERIFICATION_EXPIRES_IN);
+
+  // Mettre à jour l'utilisateur avec le nouveau jeton
+  user.emailVerificationToken = emailVerificationToken;
+  user.emailVerificationExpires = emailVerificationExpires;
+  await user.save({ validateBeforeSave: false });
+
+  // Envoyer l'email de confirmation
+  const emailSent = await sendConfirmationEmail({
+        to: user.email,
+        name: user.firstName,
+        token: emailVerificationToken
+      });
+
+  if (!emailSent) {
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'envoi de l\'email de confirmation',
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Email de vérification renvoyé avec succès',
+  });
 });
 
 // @desc    Connexion d'un utilisateur
 // @route   POST /api/auth/login
 // @access  Public
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
-  // Vérifier l'email et le mot de passe
-  if (!email || !password) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Veuillez fournir un email et un mot de passe',
+      errors: errors.array({ onlyFirstError: true }),
     });
   }
+
+  const { email, password } = req.body;
 
   // Vérifier l'utilisateur
   const user = await User.findOne({ email }).select('+password');
@@ -76,19 +246,54 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   if (!user) {
     return res.status(401).json({
       success: false,
-      message: 'Identifiants invalides',
+      message: ERROR_MESSAGES.INVALID_CREDENTIALS,
     });
   }
+
+  // Vérifier le statut du compte
+  if (user.status === USER_STATUS.SUSPENDED) {
+    return res.status(403).json({
+      success: false,
+      message: ERROR_MESSAGES.ACCOUNT_SUSPENDED,
+    });
+  }
+
+  if (user.status === USER_STATUS.BANNED) {
+    return res.status(403).json({
+      success: false,
+      message: ERROR_MESSAGES.ACCOUNT_BANNED,
+    });
+  }
+
+  // Vérifier si l'email est vérifié
+  // if (!user.isEmailVerified) {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: ERROR_MESSAGES.EMAIL_VERIFICATION_REQUIRED,
+  //     requiresVerification: true,
+  //     email: user.email
+  //   });
+  // }
 
   // Vérifier le mot de passe
   const isMatch = await user.comparePassword(password);
 
   if (!isMatch) {
+    // Enregistrer la tentative de connexion échouée
+    await user.failedLoginAttempt();
+    
     return res.status(401).json({
       success: false,
-      message: 'Identifiants invalides',
+      message: ERROR_MESSAGES.INVALID_CREDENTIALS,
     });
   }
+
+  // Réinitialiser les tentatives de connexion en cas de succès
+  await user.resetLoginAttempts();
+
+  // Mettre à jour la date de dernière connexion
+  user.lastLogin = new Date();
+  await user.save({ validateBeforeSave: false });
 
   // Générer le token JWT
   return sendTokenResponse(user, 200, res);
@@ -125,9 +330,18 @@ export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   const fieldsToUpdate = {
-    name: req.body.name,
-    email: req.body.email,
-  };
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      title: req.body.title,
+      email: req.body.email,
+      phoneNumber: req.body.phoneNumber,
+      address: req.body.address,
+      socialLinks: {
+        github: req.body.github,
+        linkedin: req.body.linkedin,
+        twitter: req.body.twitter
+      }
+    };
 
   const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
     new: true,
@@ -209,8 +423,14 @@ const sendTokenResponse = (user: IUser, statusCode: number, res: Response) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        title: user.title,
         email: user.email,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
+        cvUrl: user.cvUrl,
+        socialLinks: user.socialLinks,
         role: user.role,
       },
     });

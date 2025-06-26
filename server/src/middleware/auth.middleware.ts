@@ -8,9 +8,26 @@ interface JwtPayload {
   role: string;
 }
 
+// Interface pour les fichiers téléchargés
+interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer?: Buffer;
+}
+
 // Interface pour étendre l'objet Request d'Express
 export interface AuthRequest extends Request {
   user?: IUser;
+  file?: Express.Multer.File;
+  files?: {
+    [fieldname: string]: Express.Multer.File[];
+  } | Express.Multer.File[];
   [key: string]: any;
 }
 

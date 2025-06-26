@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ArrowDown, Github as GitHub, Linkedin, Twitter, Code, Terminal, Database, Server } from 'lucide-react';
-import { personalInfo } from '../../data';
+import { useUser } from '../../contexts/UserContext';
+import { FormattedUserProfile } from '../../types/user';
 
 type SocialPlatform = 'github' | 'linkedin' | 'twitter';
 
@@ -11,6 +12,18 @@ const socialIcons: Record<SocialPlatform, React.ReactNode> = {
 } as const;
 
 const Hero: React.FC = () => {
+  const { userData, loading } = useUser() as { 
+    userData: FormattedUserProfile; 
+    loading: boolean;
+  };
+
+  if (loading || !userData) {
+    return (
+      <section className="min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-400"></div>
+      </section>
+    );
+  }
   return (
     <section className="min-h-screen pt-20 flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 dark:from-black dark:via-blue-950 dark:to-black relative overflow-hidden">
       {/* Matrix-like Background Pattern */}
@@ -43,13 +56,13 @@ const Hero: React.FC = () => {
               {"<Hello World />"}
             </p> */}
             <h1 className="text-4xl md:text-5xl font-bold mb-4 p-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 ">
-              {personalInfo.name}
+              {userData.name}
             </h1>
             <h2 className="text-md md:text-3xl text-gray-300 mb-6 transform translate-y-10 animate-[fadeInUp_0.5s_0.2s_ease-out_forwards]">
-              {personalInfo.title}
+              {userData.title}
             </h2>
             <p className="text-lg text-gray-300 mb-8 leading-relaxed max-w-2xl transform translate-y-10 animate-[fadeInUp_0.5s_0.3s_ease-out_forwards] glass-card p-4 rounded-lg">
-              {personalInfo.about}
+              {userData.about}
             </p>
             
             <div className="flex flex-wrap gap-4 mb-12 transform translate-y-10 animate-[fadeInUp_0.5s_0.4s_ease-out_forwards]">
@@ -69,34 +82,42 @@ const Hero: React.FC = () => {
               </a>
             </div>
             
-            <div className="flex items-center gap-6 transform translate-y-10 animate-[fadeInUp_0.5s_0.5s_ease-out_forwards]">
-              {Object.entries(personalInfo.socialLinks).map(([platform, url]) => {
-                const socialPlatform = platform as SocialPlatform;
-                return (
-                  <a 
-                    key={platform}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-blue-400 transition-all duration-300 hover:scale-110 hover-glow p-2 rounded-full"
-                    aria-label={platform}
-                  >
-                    {socialIcons[socialPlatform]}
-                  </a>
-                );
-              })}
-            </div>
+            {userData.socialLinks && (
+              <div className="flex items-center gap-6 transform translate-y-10 animate-[fadeInUp_0.5s_0.5s_ease-out_forwards]">
+                {Object.entries(userData.socialLinks).map(([platform, url]) => {
+                  if (!url) return null;
+                  const socialPlatform = platform as SocialPlatform;
+                  return (
+                    <a
+                      key={platform}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 transform hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20"
+                      aria-label={`${platform} profile`}
+                    >
+                      {socialIcons[socialPlatform]}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
           
           <div className="hidden md:block md:w-2/5 transform translate-y-10 animate-[fadeInUp_0.5s_0.6s_ease-out_forwards]">
             <div className="relative w-full aspect-square max-w-md mx-auto">
               <div className="absolute inset-0 bg-gradient-radial from-blue-500/20 via-purple-500/20 to-transparent rounded-full blur-2xl animate-pulse-slow"></div>
               <div className="relative rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl transform hover:scale-[1.01] transition-all duration-500 hover-glow">
-                {/* <img 
-                  src="https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                  alt={personalInfo.name} 
+                <img 
+                  src={userData.profileImage} 
+                  alt={userData.name} 
                   className="w-full h-full object-cover"
-                /> */}
+                  onError={(e) => {
+                    // En cas d'erreur de chargement de l'image, utiliser une image de remplacement
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg';
+                  }}
+                />
               </div>
             </div>
           </div>

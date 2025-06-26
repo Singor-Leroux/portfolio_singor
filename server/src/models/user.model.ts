@@ -13,8 +13,22 @@ export type UserStatus = 'pending' | 'active' | 'suspended' | 'banned';
 // Interface pour le document utilisateur
 export interface IUser extends Document {
   name: string;
+  firstName: string;
+  lastName: string;
+  title?: string;
+  description?: string;
+  about?: string;
   email: string;
   password: string;
+  phoneNumber?: string;
+  address?: string;
+  profileImage?: string;
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
+  cvUrl?: string;
   role: UserRole;
   status: UserStatus;
   isEmailVerified: boolean;
@@ -25,6 +39,8 @@ export interface IUser extends Document {
   passwordChangedAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateAuthToken(): string;
   generateRefreshToken(): string;
@@ -41,11 +57,33 @@ interface IUserModel extends Model<IUser> {
 }
 
 const userSchema = new Schema<IUser, IUserModel>({
-  name: {
+  firstName: {
     type: String,
-    required: [true, 'Veuillez fournir un nom'],
+    required: [true, 'Le prénom est requis'],
+    trim: true,
+    maxlength: [50, 'Le prénom ne peut pas dépasser 50 caractères'],
+  },
+  lastName: {
+    type: String,
+    required: [true, 'Le nom est requis'],
     trim: true,
     maxlength: [50, 'Le nom ne peut pas dépasser 50 caractères'],
+  },
+  title: {
+    type: String,
+    required: [true, 'Le titre professionnel est requis'],
+    trim: true,
+    maxlength: [100, 'Le titre ne peut pas dépasser 100 caractères'],
+  },
+  about: {
+    type: String,
+    required: [true, 'Veuillez vous présenter brièvement'],
+    trim: true,
+    maxlength: [1000, 'La présentation ne peut pas dépasser 1000 caractères'],
+  },
+  profileImage: {
+    type: String,
+    default: '',
   },
   email: {
     type: String,
@@ -58,6 +96,20 @@ const userSchema = new Schema<IUser, IUserModel>({
       'Veuillez fournir un email valide',
     ],
     index: true, // Définition explicite de l'index pour plus de clarté
+  },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Le numéro de téléphone ne peut pas dépasser 20 caractères'],
+    match: [
+      /^[0-9+\s-]*$/,
+      'Veuillez fournir un numéro de téléphone valide',
+    ],
+  },
+  address: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'L\'adresse ne peut pas dépasser 200 caractères'],
   },
   password: {
     type: String,
@@ -96,6 +148,29 @@ const userSchema = new Schema<IUser, IUserModel>({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
+  cvUrl: {
+    type: String,
+    default: ''
+  },
+  socialLinks: {
+    github: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    linkedin: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    twitter: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  }
 }, {
   timestamps: true,
   toJSON: { virtuals: true, versionKey: false },

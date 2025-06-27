@@ -66,14 +66,17 @@ interface ApiResponse<T> {
 
 // Configuration de l'URL de base de l'API
 const getBaseUrl = () => {
-  // En mode développement, on utilise le chemin racine avec /api/v1
-  // car le proxy Vite redirigera vers le bon serveur
+  // En développement, utilisez le proxy configuré dans vite.config.ts
   if (import.meta.env.DEV) {
     return '/api/v1';
   }
-  // En production, utilisez l'URL complète du serveur backend avec /api/v1
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) + '/api/v1' : baseUrl + '/api/v1';
+  // En production, utilisez l'URL de l'API spécifiée dans les variables d'environnement
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+  // S'assurer qu'on n'ajoute pas /api/v1 en double
+  if (baseUrl.endsWith('/api/v1')) {
+    return baseUrl;
+  }
+  return baseUrl.endsWith('/') ? baseUrl + 'api/v1' : baseUrl + '/api/v1';
 };
 
 // Créer une instance d'axios avec l'URL de base configurée

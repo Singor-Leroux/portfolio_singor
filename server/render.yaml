@@ -5,7 +5,9 @@ services:
     env: node
     buildCommand: |
       echo "Installation des dépendances..."
-      npm ci --prefer-offline --no-audit --progress=false
+      npm install --production=false --no-package-lock --no-audit --progress=false
+      echo "Installation des types Node.js..."
+      npm install --save-dev @types/node@20.11.19
       echo "Construction de l'application..."
       npm run build
     startCommand: npm start
@@ -14,7 +16,9 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: NPM_CONFIG_PRODUCTION
+        value: false
     buildCache:
-      clearOnSuccess: true
+      clearOnSuccess: false
     plan: free
     autoDeploy: true

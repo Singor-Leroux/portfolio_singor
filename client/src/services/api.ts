@@ -71,8 +71,10 @@ const getBaseUrl = () => {
     return '/api/v1';
   }
   // En production, utilisez l'URL de l'API spécifiée dans les variables d'environnement
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-  // S'assurer qu'on n'ajoute pas /api/v1 en double
+  // ou l'URL de production sécurisée par défaut
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://portfolio-singor-backend.onrender.com/api/v1';
+  
+  // S'assurer que l'URL se termine par /api/v1
   if (baseUrl.endsWith('/api/v1')) {
     return baseUrl;
   }

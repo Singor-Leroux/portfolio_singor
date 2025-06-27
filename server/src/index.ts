@@ -51,7 +51,7 @@ try {
 // Configuration du trust proxy pour Render
 app.set('trust proxy', 1); // Fait confiance au premier proxy
 
-// Configuration CORS simplifiée
+// Configuration CORS
 const allowedOrigins = [
   'http://localhost:5173', // Vite dev server
   'http://localhost:3000', // React dev server
@@ -60,63 +60,36 @@ const allowedOrigins = [
   'http://localhost:5002', // Client
   'http://127.0.0.1:5002', // Client (alternative)
   'https://portfolio-leroux.netlify.app', // Production frontend
-  'https://portfolio-singor-backend.onrender.com' // Backend
+  'https://portfolio-singor-backend.onrender.com', // Backend
+  'https://portfolio-leroux.netlify.app' // Production frontend (sans www)
 ];
 
-// Configuration CORS de base
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // En développement, on accepte toutes les origines
-    if (process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    
-    // En production, on vérifie l'origine
+// Middleware CORS personnalisé
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Vérifier si l'origine est autorisée
+  if (process.env.NODE_ENV === 'production') {
     if (origin && allowedOrigins.includes(origin)) {
-      return callback(null, true);
+      res.setHeader('Access-Control-Allow-Origin', origin);
     }
-    
-    console.warn(`Origin non autorisée: ${origin}`);
-    callback(new Error('Non autorisé par CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'X-Access-Token',
-    'X-Forwarded-For',
-    'X-Forwarded-Proto',
-    'X-Forwarded-Host',
-    'X-Forwarded-Port',
-    'X-Forwarded-Server',
-    'X-Forwarded-User',
-    'X-Forwarded-Prefix',
-    'X-Forwarded-Path',
-    'X-Forwarded-Uri',
-    'X-Api-Version',
-    'X-CSRF-Token',
-    'X-HTTP-Method-Override',
-    'Set-Cookie',
-    'Cookie'
-  ],
-  exposedHeaders: [
-    'Content-Range',
-    'X-Total-Count',
-    'Authorization',
-    'Content-Disposition',
-    'Set-Cookie',
-    'Clear-Site-Data'
-  ]
-};
-
-// Configuration CORS pour l'application
-app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
+  } else {
+    // En développement, accepter toutes les origines
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-Access-Token, X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-Port, X-Forwarded-Server, X-Forwarded-User, X-Forwarded-Prefix, X-Forwarded-Path, X-Forwarded-Uri, X-Api-Version, X-CSRF-Token, X-HTTP-Method-Override, Set-Cookie, Cookie');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Range, X-Total-Count, Authorization, Content-Disposition, Set-Cookie, Clear-Site-Data');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Répondre immédiatement aux requêtes OPTIONS (prévol)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Middleware pour parser le JSON
 app.use(express.json());

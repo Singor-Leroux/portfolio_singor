@@ -2,6 +2,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useProjectSocket } from '../hooks/useProjectSocket';
 import { styled } from '@mui/material/styles';
+import Grid from '@mui/material/Grid'; // Version standard de Grid
+
+// Suppression du type ErrorType non utilisé
 
 // Fonction utilitaire pour créer un objet conforme à ProjectCreationPayload
 const createProjectFormData = (data: {
@@ -38,7 +41,7 @@ import {
   CircularProgress, 
   Alert as MuiAlert, 
   Snackbar, 
-  Grid, 
+
   IconButton, 
   FormControlLabel, 
   Checkbox,
@@ -206,6 +209,8 @@ const ProjectsPage = () => {
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['projects'] });
   }, [queryClient]);
+
+
 
   // Fonction de validation du formulaire
   const validateForm = (): boolean => {
@@ -562,9 +567,10 @@ const ProjectsPage = () => {
         
         await createMutation.mutateAsync(formData);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erreur lors de la soumission du formulaire:', error);
-      showSnackbar(error instanceof Error ? error.message : 'Une erreur est survenue', 'error');
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue';
+      showSnackbar(errorMessage, 'error');
     }
   };
 
@@ -576,7 +582,8 @@ const ProjectsPage = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
+  // Fonction utilitaire pour afficher les notifications
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setSnackbar({
       open: true,
       message,
@@ -878,8 +885,6 @@ const ProjectsPage = () => {
             columnHeaderSortIconLabel: 'Trier',
             
             // Panneau des colonnes
-            // Propriétés de localisation supportées
-            // Suppression de columnsPanelTextFieldLabel car non supportée
             toolbarColumns: 'Colonnes',
             toolbarFilters: 'Filtres',
             
@@ -949,7 +954,7 @@ const ProjectsPage = () => {
           <DialogContent sx={{ py: 3, px: { xs: 2, sm: 4 } }}>
             <Grid container spacing={3}>
               {/* Colonne de gauche - Informations générales */}
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={6} component="div">
                 <Card 
                   variant="outlined" 
                   sx={{ 
@@ -1047,7 +1052,7 @@ const ProjectsPage = () => {
               </Grid>
               
               {/* Colonne de droite - Liens et image */}
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={6} component="div">
                 <Card 
                   variant="outlined" 
                   sx={{ 

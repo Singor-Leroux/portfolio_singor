@@ -1,5 +1,5 @@
 import { Box, Container, Paper, Typography } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2'; // Grid version 2
+import Grid from '@mui/material/Grid'; // Import explicite du composant Grid
 import {
   People as PeopleIcon,
   Assessment as AssessmentIcon,
@@ -46,62 +46,57 @@ const DashboardPage = () => {
         Tableau de bord
       </Typography>
       
-      <Grid2 container spacing={3}>
-        {stats.map((stat, index) => (
-          <Grid2 key={index} xs={12} sm={6} md={3}>
-            <StatCard {...stat} />
-          </Grid2>
-        ))}
-        
-        <Grid2 xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Typography component="h2" variant="h6" color="primary" gutterBottom>
-              Vue d'ensemble
-            </Typography>
-            <Box sx={{ height: 300 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '100%',
-                  color: 'text.secondary',
-                }}
-              >
-                Graphique des statistiques (à implémenter)
-              </Box>
-            </Box>
-          </Paper>
-        </Grid2>
-        
-        <Grid2 xs={12} md={8}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }}>
-            <Typography component="h2" variant="h6" color="primary" gutterBottom>
-              Activité récente
-            </Typography>
-          </Paper>
-        </Grid2>
-        <Grid2 xs={12} md={4}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }}>
-            <Typography component="h2" variant="h6" color="primary" gutterBottom>
-              Notifications
-            </Typography>
-          </Paper>
-        </Grid2>
-        
-        <Grid2 xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom>
-              Projets récents
-            </Typography>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Aucun projet récent
+      <Box sx={{ flexGrow: 1 }}>
+        <Grid container spacing={3}>
+          {stats.map((stat, index) => (
+            <Grid key={index} item xs={12} sm={6} md={3} component="div">
+              <StatCard {...stat} />
+            </Grid>
+          ))}
+          
+          <Grid item xs={12} component="div">
+            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+              <Typography component="h2" variant="h6" color="primary" gutterBottom>
+                Vue d'ensemble
               </Typography>
-            </Box>
-          </Paper>
-        </Grid2>
-      </Grid2>
+              <Box sx={{ height: 300 }}>
+                <Typography variant="body1" color="text.secondary" align="center" sx={{ mt: 10 }}>
+                  Graphiques et statistiques à venir...
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} md={8} component="div">
+            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }}>
+              <Typography component="h2" variant="h6" color="primary" gutterBottom>
+                Activité récente
+              </Typography>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} md={4} component="div">
+            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }}>
+              <Typography component="h2" variant="h6" color="primary" gutterBottom>
+                Notifications
+              </Typography>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} component="div">
+            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="h6" gutterBottom>
+                Projets récents
+              </Typography>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Aucun projet récent
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
     </Container>
   );
 };

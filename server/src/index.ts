@@ -34,6 +34,9 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 5000;
 
+// Configuration du trust proxy pour Render
+app.set('trust proxy', 1); // Fait confiance au premier proxy
+
 // Configuration CORS pour WebSocket et API
 const allowedOrigins = [
   'http://localhost:5173', // Vite dev server
@@ -145,10 +148,11 @@ app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
 // Middleware pour parser le JSON
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Middleware pour parser les données de formulaire
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// Gestionnaire pour favicon.ico
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Middleware pour les cookies
 app.use(cookieParser());
@@ -159,15 +163,17 @@ app.use(helmet());
 // Rate limiting - configuration plus permissive pour le développement
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Limite plus élevée en développement
-  message: { 
-    success: false, 
-    message: 'Trop de requêtes depuis cette adresse IP, veuillez réessayer plus tard.' 
-  },
-  // Ne pas compter les échecs de connexion WebSocket
+  max: 1000, // Limite chaque IP à 1000 requêtes par fenêtre
+  message: 'Trop de requêtes depuis cette adresse IP, veuillez réessayer plus tard',
+  standardHeaders: true, // Renvoie les informations de limite de taux dans les en-têtes `RateLimit-*`
+  legacyHeaders: false, // Désactive les en-têtes `X-RateLimit-*`
   skipFailedRequests: true,
-  // Ignorer les requêtes de prévol (OPTIONS)
-  skip: (req) => req.method === 'OPTIONS'
+  // Ignorer les requêtes de prévol (OPTIONS) et favicon.ico
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/favicon.ico',
+  // Utiliser l'en-tête X-Forwarded-For derrière un proxy
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress || 'unknown';
+  }
 });
 
 // Appliquer le rate limiting uniquement sur les routes API

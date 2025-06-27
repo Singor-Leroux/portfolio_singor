@@ -4,7 +4,9 @@ services:
     name: portfolio-singor-backend
     env: node
     buildCommand: |
-      npm install --production=false
+      echo "Installation des dépendances..."
+      npm ci --prefer-offline --no-audit --progress=false
+      echo "Construction de l'application..."
       npm run build
     startCommand: npm start
     envVars:
@@ -12,5 +14,7 @@ services:
         value: production
       - key: PORT
         value: 10000
+    buildCache:
+      clearOnSuccess: true
     plan: free
     autoDeploy: true

@@ -5,7 +5,7 @@ import {
   DialogContent, DialogActions, TextField, CircularProgress, Alert, Snackbar, Tooltip
 } from '@mui/material';
 import { Add, Edit, Delete, FileDownload, Search, Clear } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { 
   ExperienceBE, 
   getExperiences, 
@@ -551,74 +551,23 @@ const ExperiencesPage = () => {
               sortingMode="server"
               localeText={{
                 // Textes de base
-                noRowsLabel: 'Aucune donnée disponible',
+                noRowsLabel: 'Aucune expérience trouvée',
                 noResultsOverlayLabel: 'Aucun résultat trouvé.',
                 
                 // Barre d'outils
                 toolbarColumns: 'Colonnes',
                 toolbarFilters: 'Filtrer',
-                toolbarExport: 'Exporter',
-                toolbarExportCSV: 'Télécharger en CSV',
-                toolbarExportPrint: 'Imprimer',
-                toolbarDensity: 'Densité',
-                toolbarDensityCompact: 'Compacte',
-                toolbarDensityStandard: 'Standard',
-                toolbarDensityComfortable: 'Confortable',
                 
                 // Menu des colonnes
-                columnMenuLabel: 'Menu',
                 columnMenuShowColumns: 'Afficher les colonnes',
                 columnMenuFilter: 'Filtrer',
-                columnMenuHideColumn: 'Masquer',
-                columnMenuUnsort: 'Non trié',
-                columnMenuSortAsc: 'Trier par ordre croissant',
-                columnMenuSortDesc: 'Trier par ordre décroissant',
-                
-                // Panneau des colonnes
-                columnsManagementSearchTitle: 'Rechercher une colonne',
-                columnsManagementShowHideAllText: 'Tout afficher/masquer',
-                columnsManagementNoColumns: 'Aucune colonne disponible',
-                
-                // Filtres
-                filterPanelAddFilter: 'Ajouter un filtre',
-                filterPanelDeleteIconLabel: 'Supprimer',
-                filterPanelOperator: 'Opérateur',
-                filterPanelOperatorAnd: 'Et',
-                filterPanelOperatorOr: 'Ou',
-                filterPanelColumns: 'Colonnes',
-                filterPanelInputLabel: 'Valeur',
-                filterPanelInputPlaceholder: 'Valeur du filtre',
-                filterOperatorContains: 'contient',
-                filterOperatorEquals: 'égal à',
-                filterOperatorStartsWith: 'commence par',
-                filterOperatorEndsWith: 'se termine par',
-                filterOperatorIsEmpty: 'est vide',
-                filterOperatorIsNotEmpty: 'n\'est pas vide',
-                filterOperatorIsAnyOf: 'fait partie de',
-                filterValueAny: 'n\'importe quelle valeur',
-                filterValueTrue: 'Oui',
-                filterValueFalse: 'Non',
                 
                 // Pagination
-                MuiTablePagination: {
-                  labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
-                    `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
-                  labelRowsPerPage: 'Lignes par page:',
-                  getItemAriaLabel: (type: string) => {
-                    switch (type) {
-                      case 'first':
-                        return 'Première page';
-                      case 'last':
-                        return 'Dernière page';
-                      case 'next':
-                        return 'Page suivante';
-                      case 'previous':
-                        return 'Page précédente';
-                      default:
-                        return '';
-                    }
-                  }
-                }
+                footerRowSelected: (count: number) =>
+                  count !== 1
+                    ? `${count} expériences sélectionnées`
+                    : '1 expérience sélectionnée',
+                paginationRowsPerPage: 'Expériences par page:'
               }}
               sx={{
                 flex: 1,

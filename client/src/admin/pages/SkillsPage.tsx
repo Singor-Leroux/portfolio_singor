@@ -6,8 +6,8 @@ import {
   InputLabel, SelectChangeEvent, CircularProgress, Alert, Snackbar, Tooltip
 } from '@mui/material';
 import { Add, Edit, Delete, FileDownload, Search, Clear } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
-import { blue, green, orange, red, grey, yellow } from '@mui/material/colors';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { blue, green, orange, grey, yellow } from '@mui/material/colors';
 import { Skill, getSkills, createSkill, updateSkill, deleteSkill, SkillLevel, SkillCreationPayload, SkillUpdatePayload } from '../api/skills';
 
 const SkillsPage = () => {
@@ -161,14 +161,15 @@ const SkillsPage = () => {
       field: 'category', 
       headerName: 'Catégorie', 
       width: 150,
-      valueGetter: (params) => {
-        switch (params.value) {
+      valueGetter: (params: { row: { category?: string } }) => {
+        const value = params.row?.category || '';
+        switch (value) {
           case 'frontend': return 'Frontend';
           case 'backend': return 'Backend';
           case 'database': return 'Base de données';
           case 'devops': return 'DevOps';
           case 'other': return 'Autre';
-          default: return params.value;
+          default: return value || 'Non spécifié';
         }
       },
     },
@@ -316,26 +317,12 @@ const SkillsPage = () => {
             columnMenuShowColumns: 'Afficher les colonnes',
             columnMenuFilter: 'Filtrer',
             
-            // Pagination
-            MuiTablePagination: {
-              labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
-              labelRowsPerPage: 'Lignes par page:',
-              getItemAriaLabel: (type: string) => {
-                switch (type) {
-                  case 'first':
-                    return 'Première page';
-                  case 'last':
-                    return 'Dernière page';
-                  case 'next':
-                    return 'Page suivante';
-                  case 'previous':
-                    return 'Page précédente';
-                  default:
-                    return '';
-                }
-              }
-            }
+            // Pagination - Configuration minimale
+            footerRowSelected: (count: number) =>
+              count !== 1
+                ? `${count} compétences sélectionnées`
+                : '1 compétence sélectionnée',
+            paginationRowsPerPage: 'Compétences par page:'
           }}
           sx={{
             flex: 1,

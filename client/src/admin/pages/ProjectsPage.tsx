@@ -27,10 +27,10 @@ import {
   Chip,
   Tooltip,
   Avatar,
-  Switch,
+  // Switch,
   Link
 } from '@mui/material';
-import { DataGrid, GridColDef, GridRowParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import {
   Add as AddIcon,
   Clear as ClearIcon,
@@ -44,9 +44,9 @@ import {
   Refresh as RefreshIcon,
   Save as SaveIcon,
   Search as SearchIcon,
-  CheckCircle as CheckCircleIcon,
+  // CheckCircle as CheckCircleIcon,
   ErrorOutline as ErrorOutlineIcon,
-  Star as StarIcon,
+  // Star as StarIcon,
   StarBorder as StarBorderIcon,
   Language as LanguageIcon,
   Info as InfoIcon,
@@ -127,7 +127,11 @@ const ProjectsPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  // État de soumission géré par la mutation
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -550,7 +554,7 @@ const ProjectsPage = () => {
   };
 
   // Gestion des notifications
-  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  const handleCloseSnackbar = (_event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
       return;
     }
@@ -842,10 +846,11 @@ const ProjectsPage = () => {
           rows={filteredProjects}
           columns={columns}
           getRowId={(row) => row._id}
-          loading={isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableSelectionOnClick
+          loading={isLoading}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[5, 10, 25]}
+          disableRowSelectionOnClick
           localeText={{
             // Menu et en-têtes
             columnMenuLabel: 'Menu',
@@ -858,41 +863,27 @@ const ProjectsPage = () => {
             columnHeaderSortIconLabel: 'Trier',
             
             // Panneau des colonnes
-            columnsPanelTextFieldLabel: 'Rechercher une colonne',
-            columnsPanelShowAllButton: 'Tout afficher',
-            columnsPanelHideAllButton: 'Tout masquer',
+            // Propriétés de localisation supportées
+            toolbarColumns: 'Colonnes',
+            toolbarFilters: 'Filtres',
             
-            // Filtres
+            // Filtres - Configuration minimale
             filterPanelAddFilter: 'Ajouter un filtre',
             filterPanelDeleteIconLabel: 'Supprimer',
-            filterPanelOperators: 'Opérateurs',
-            filterPanelOperatorAnd: 'Et',
-            filterPanelOperatorOr: 'Ou',
-            filterPanelColumns: 'Colonnes',
-            filterPanelInputLabel: 'Valeur',
-            filterPanelInputPlaceholder: 'Valeur du filtre',
+            filterPanelOperator: 'Opérateur',
             filterOperatorContains: 'contient',
             filterOperatorEquals: 'égal à',
-            filterOperatorStartsWith: 'commence par',
-            filterOperatorEndsWith: 'se termine par',
-            filterOperatorIsEmpty: 'est vide',
-            filterOperatorIsNotEmpty: 'n\'est pas vide',
-            filterOperatorIsAnyOf: 'fait partie de',
-            filterValueAny: 'n\'importe quelle valeur',
-            filterValueTrue: 'Oui',
-            filterValueFalse: 'Non',
             
-            // Pagination
-            MuiTablePagination: {
-              labelRowsPerPage: 'Lignes par page:',
-              labelDisplayedRows: ({ from, to, count }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-            },
+            // Pagination - Configuration minimale
+            footerRowSelected: (count: number) =>
+              count !== 1
+                ? `${count} projets sélectionnés`
+                : '1 projet sélectionné',
+            paginationRowsPerPage: 'Projets par page:',
             
             // Messages
             noRowsLabel: 'Aucun projet trouvé',
-            noResultsOverlayLabel: 'Aucun résultat trouvé.',
-            errorOverlayDefaultLabel: 'Une erreur est survenue.'
+            noResultsOverlayLabel: 'Aucun résultat trouvé'
           }}
           sx={{
             flex: 1,
@@ -912,7 +903,7 @@ const ProjectsPage = () => {
       {/* Dialogue d'ajout/édition de projet */}
       <Dialog 
         open={openDialog} 
-        onClose={!isSubmitting ? handleCloseDialog : undefined} 
+        onClose={!(createMutation.isPending || updateMutation.isPending || deleteMutation.isPending) ? handleCloseDialog : undefined} 
         maxWidth="md" 
         fullWidth
         PaperProps={{
@@ -977,6 +968,7 @@ const ProjectsPage = () => {
                         startAdornment: <TitleIcon sx={{ color: 'text.secondary', mr: 1, my: 0.5 }} />
                       }}
                       sx={{ mb: 2 }}
+                      disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
                     />
                     
                     <TextField
@@ -996,6 +988,7 @@ const ProjectsPage = () => {
                         startAdornment: <DescriptionIcon sx={{ color: 'text.secondary', mr: 1, mt: 1.5, alignSelf: 'flex-start' }} />
                       }}
                       sx={{ mb: 2 }}
+                      disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
                     />
                     
                     <TextField
@@ -1012,6 +1005,7 @@ const ProjectsPage = () => {
                       InputProps={{
                         startAdornment: <CodeIcon sx={{ color: 'text.secondary', mr: 1, my: 0.5 }} />
                       }}
+                      disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
                     />
                     
                     <FormControlLabel
@@ -1021,6 +1015,7 @@ const ProjectsPage = () => {
                           onChange={handleChange}
                           name="featured"
                           color="primary"
+                          disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
                         />
                       }
                       label={
@@ -1121,7 +1116,7 @@ const ProjectsPage = () => {
                       id="project-image-upload"
                       type="file"
                       onChange={handleFileChange}
-                      disabled={isSubmitting}
+                      disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
                     />
                     <Box 
                       onDragOver={handleDragOver}
@@ -1144,7 +1139,7 @@ const ProjectsPage = () => {
                           component="span"
                           startIcon={<CloudUploadIcon />}
                           fullWidth
-                          disabled={isSubmitting}
+                          disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
                           sx={{
                             py: 1.5,
                             borderStyle: 'dashed',
@@ -1299,7 +1294,7 @@ const ProjectsPage = () => {
             <Button 
               onClick={handleCloseDialog} 
               color="inherit"
-              disabled={isSubmitting}
+              disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
               startIcon={<CloseIcon />}
             >
               Annuler
@@ -1308,8 +1303,8 @@ const ProjectsPage = () => {
               type="submit" 
               color="primary" 
               variant="contained"
-              disabled={isSubmitting || (!currentProject.imageFile && !currentProject.imageUrl && !editingId)}
-              startIcon={isSubmitting ? <CircularProgress size={20} /> : <SaveIcon />}
+              disabled={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || (!currentProject.imageFile && !currentProject.imageUrl && !editingId)}
+              startIcon={(createMutation.isPending || updateMutation.isPending || deleteMutation.isPending) ? <CircularProgress size={20} /> : <SaveIcon />}
               sx={{
                 minWidth: 120,
                 '&:disabled': {
@@ -1317,7 +1312,7 @@ const ProjectsPage = () => {
                 }
               }}
             >
-              {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+              {(createMutation.isPending || updateMutation.isPending || deleteMutation.isPending) ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogActions>
         </form>

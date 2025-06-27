@@ -33,10 +33,8 @@ import {
   Menu as MuiMenu,
   Grid,
   SelectChangeEvent,
-  styled,
   Snackbar,
   Alert,
-  Tooltip,
   Link
 } from '@mui/material';
 
@@ -56,15 +54,6 @@ import {
   Twitter
 } from '@mui/icons-material';
 
-// Composant Grid avec styles personnalisés
-const StyledGrid = styled(Grid)(({ theme }) => ({
-  // Ajoutez des styles personnalisés si nécessaire
-}));
-
-// Composant Grid avec les bonnes propriétés pour MUI v6+
-const GridItem = (props: any) => (
-  <Grid {...props} />
-);
 
 interface User {
   _id: string;
@@ -400,7 +389,7 @@ const UsersPage: React.FC = () => {
   };
 
   // Gestion de la pagination
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -544,15 +533,15 @@ const UsersPage: React.FC = () => {
       <Card>
         <CardContent>
           <Grid container spacing={3}>
-            <GridItem xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Total Utilisateurs</Typography>
                   <Typography variant="h4">{users.length}</Typography>
                 </CardContent>
               </Card>
-            </GridItem>
-            <GridItem xs={12} sm={6} md={4}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Utilisateurs Actifs</Typography>
@@ -561,8 +550,8 @@ const UsersPage: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </GridItem>
-            <GridItem xs={12} sm={6} md={4}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Admin Users</Typography>
@@ -571,11 +560,11 @@ const UsersPage: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </GridItem>
+            </Grid>
           </Grid>
 
           <Grid container spacing={2} sx={{ mb: 3, mt: 3 }}>
-            <GridItem xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
                 variant="outlined"
@@ -587,8 +576,8 @@ const UsersPage: React.FC = () => {
                   startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
                 }}
               />
-            </GridItem>
-            <GridItem xs={12} sm={6} md={4}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="small">
                 <InputLabel>Statut</InputLabel>
                 <Select
@@ -603,8 +592,8 @@ const UsersPage: React.FC = () => {
                   <MenuItem value="banned">Banni</MenuItem>
                 </Select>
               </FormControl>
-            </GridItem>
-            <GridItem xs={12} sm={6} md={4}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="small">
                 <InputLabel>Rôle</InputLabel>
                 <Select
@@ -617,7 +606,7 @@ const UsersPage: React.FC = () => {
                   <MenuItem value="user">Utilisateur</MenuItem>
                 </Select>
               </FormControl>
-            </GridItem>
+            </Grid>
           </Grid>
           
           <TableContainer component={Paper} sx={{ mt: 3 }}>

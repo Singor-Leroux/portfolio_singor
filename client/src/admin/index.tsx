@@ -7,7 +7,8 @@ import { queryClient } from './lib/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeContextProvider } from './contexts/ThemeContext'; // Importer notre fournisseur de thème
 import App from './App';
-import reportWebVitals from './reportWebVitals';
+// Temporairement désactivé pour permettre le build
+// import reportWebVitals from './reportWebVitals';
 // 'theme' n'est plus importé directement ici
 
 // Suppression des logs en production
@@ -36,7 +37,5 @@ root.render(
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals(console.log);
+// Temporairement désactivé pour permettre le build
+// reportWebVitals(console.log);

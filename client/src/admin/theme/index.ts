@@ -26,7 +26,6 @@ export const createAppTheme = (mode: 'light' | 'dark') => createTheme({
     primary: {
       light: '#63b8ff',
       main: '#1976d2',
-      mainCopy: '#043770',
       dark: '#004ba0',
       contrastText: '#fff',
     },

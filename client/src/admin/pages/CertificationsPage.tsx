@@ -408,25 +408,11 @@ const CertificationsPage = () => {
             columnMenuFilter: 'Filtrer',
             
             // Pagination
-            MuiTablePagination: {
-              labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
-              labelRowsPerPage: 'Lignes par page:',
-              getItemAriaLabel: (type: string) => {
-                switch (type) {
-                  case 'first':
-                    return 'Première page';
-                  case 'last':
-                    return 'Dernière page';
-                  case 'next':
-                    return 'Page suivante';
-                  case 'previous':
-                    return 'Page précédente';
-                  default:
-                    return '';
-                }
-              }
-            }
+            footerRowSelected: (count: number) =>
+              count !== 1
+                ? `${count} certifications sélectionnées`
+                : '1 certification sélectionnée',
+            paginationRowsPerPage: 'Certifications par page:'
           }}
           sx={{
             flex: 1,

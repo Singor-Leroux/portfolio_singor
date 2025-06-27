@@ -7,9 +7,9 @@ interface ProtectedRouteProps {
   adminOnly?: boolean;
   children?: React.ReactNode;
   requireAuth?: boolean;
-}
+};
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   adminOnly = false, 
   children,
   requireAuth = true
@@ -91,3 +91,5 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Afficher les enfants ou le composant Outlet pour les routes imbriquées
   return children ? <>{children}</> : <Outlet />;
 };
+
+export default ProtectedRoute;

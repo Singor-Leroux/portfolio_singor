@@ -360,6 +360,7 @@ const EducationPage = () => {
           localeText={{
             // Textes de base
             noRowsLabel: 'Aucune donnée disponible',
+            noResultsOverlayLabel: 'Aucun résultat trouvé.',
             
             // Barre d'outils
             toolbarColumns: 'Colonnes',
@@ -369,26 +370,12 @@ const EducationPage = () => {
             columnMenuShowColumns: 'Afficher les colonnes',
             columnMenuFilter: 'Filtrer',
             
-            // Pagination
-            MuiTablePagination: {
-              labelDisplayedRows: ({ from, to, count }: { from: number, to: number, count: number }) => 
-                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`,
-              labelRowsPerPage: 'Lignes par page:',
-              getItemAriaLabel: (type: string) => {
-                switch (type) {
-                  case 'first':
-                    return 'Première page';
-                  case 'last':
-                    return 'Dernière page';
-                  case 'next':
-                    return 'Page suivante';
-                  case 'previous':
-                    return 'Page précédente';
-                  default:
-                    return '';
-                }
-              }
-            }
+            // Pagination - Configuration minimale
+            footerRowSelected: (count: number) =>
+              count !== 1
+                ? `${count} lignes sélectionnées`
+                : '1 ligne sélectionnée',
+            paginationRowsPerPage: 'Lignes par page:'
           }}
           sx={{
             flex: 1,

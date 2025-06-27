@@ -452,4 +452,5 @@ const RegisterPage = () => {
   );
 };
 
-export { RegisterPage };
+// Export par défaut du composant RegisterPage
+export default RegisterPage;

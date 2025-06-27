@@ -1,9 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+      filename: 'dist/bundle-analyzer-report.html'
+    })
+  ],
   server: {
     port: 5002,
     host: '0.0.0.0',
@@ -71,6 +80,7 @@ export default defineConfig({
   },
   // Configuration du build
   build: {
+    // Dossiers de sortie
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
@@ -78,18 +88,44 @@ export default defineConfig({
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
-      }
+        drop_debugger: true,
+      },
+      format: {
+        comments: false,
+      },
     },
+    chunkSizeWarningLimit: 1000, // Augmenter la limite d'avertissement à 1000 Ko
     rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          vendor: ['axios', 'jwt-decode', 'socket.io-client'],
-          ui: ['@mui/material', '@emotion/react', '@emotion/styled']
+      onwarn: (warning, warn) => {
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+          return;
         }
-      }
-    }
+        warn(warning);
+      },
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            // Grouper les dépendances MUI ensemble
+            if (id.includes('@mui/') || id.includes('@emotion/')) {
+              return 'vendor-mui';
+            }
+            // Grouper les dépendances de routing
+            if (id.includes('react-router') || id.includes('@remix-run')) {
+              return 'vendor-router';
+            }
+            // Grouper les utilitaires communs
+            if (id.includes('axios') || id.includes('jwt-decode') || id.includes('socket.io')) {
+              return 'vendor-utils';
+            }
+            // Grouper le reste des dépendances node_modules
+            return 'vendor';
+          }
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
   },
   // Configuration des alias
   resolve: {

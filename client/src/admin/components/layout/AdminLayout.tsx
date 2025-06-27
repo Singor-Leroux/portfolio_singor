@@ -50,7 +50,7 @@ const menuItems = [
   { text: 'Paramètres', icon: <SettingsIcon />, path: '/admin/dashboard/settings' },
 ];
 
-export const AdminLayout = () => {
+export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();

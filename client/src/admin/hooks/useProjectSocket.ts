@@ -2,8 +2,6 @@ import { useEffect, useCallback } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { Project } from '../types/project';
 
-type ProjectEvent = 'project:created' | 'project:updated' | 'project:deleted';
-
 interface ProjectEventHandlers {
   onProjectCreated?: (project: Project) => void;
   onProjectUpdated?: (data: { old: Project; new: Project }) => void;

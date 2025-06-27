@@ -30,7 +30,7 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string; value: s
   </Paper>
 );
 
-export const DashboardPage = () => {
+const DashboardPage = () => {
   // Ces données viendront de votre API dans une vraie application
   const stats = [
     { title: 'Utilisateurs', value: '1,234', icon: PeopleIcon, color: '#1976d2' },
@@ -47,7 +47,7 @@ export const DashboardPage = () => {
       
       <Grid container spacing={3}>
         {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid key={index} item xs={12} sm={6} md={3}>
             <StatCard {...stat} />
           </Grid>
         ))}
@@ -58,7 +58,6 @@ export const DashboardPage = () => {
               Vue d'ensemble
             </Typography>
             <Box sx={{ height: 300 }}>
-              {/* Ici, vous pourriez ajouter un graphique avec une bibliothèque comme recharts ou chart.js */}
               <Box
                 sx={{
                   display: 'flex',
@@ -74,14 +73,13 @@ export const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Typography component="h2" variant="h6" color="primary" gutterBottom>
-              Dernières activités
+            <Typography variant="h6" gutterBottom>
+              Activité récente
             </Typography>
-            <Box>
-              {/* Liste des activités récentes */}
-              <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" color="text.secondary">
                 Aucune activité récente
               </Typography>
             </Box>
@@ -90,13 +88,12 @@ export const DashboardPage = () => {
         
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Typography component="h2" variant="h6" color="primary" gutterBottom>
-              Notifications
+            <Typography variant="h6" gutterBottom>
+              Projets récents
             </Typography>
-            <Box>
-              {/* Liste des notifications */}
-              <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                Aucune notification
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Aucun projet récent
               </Typography>
             </Box>
           </Paper>
@@ -105,3 +102,5 @@ export const DashboardPage = () => {
     </Container>
   );
 };
+
+export default DashboardPage;

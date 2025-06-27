@@ -1,8 +1,8 @@
-// server/tsconfig.json
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "ES2020",
     "module": "commonjs",
+    "lib": ["es2020"],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
@@ -17,8 +17,7 @@
     },
     "types": ["node"],
     "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
+      "./node_modules/@types"
     ],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,

@@ -32,7 +32,21 @@ import connectDB from './config/db';
 // Initialisation de l'application Express
 const app = express();
 const server = createServer(app);
-const PORT = process.env.PORT || 5000;
+
+// Configuration du port
+const DEFAULT_PORT = 5000;
+let PORT: number;
+
+try {
+  PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
+  if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+    console.warn(`Port invalide: ${process.env.PORT}, utilisation du port par défaut ${DEFAULT_PORT}`);
+    PORT = DEFAULT_PORT;
+  }
+} catch (error) {
+  console.error('Erreur lors de la configuration du port:', error);
+  PORT = DEFAULT_PORT;
+}
 
 // Configuration du trust proxy pour Render
 app.set('trust proxy', 1); // Fait confiance au premier proxy

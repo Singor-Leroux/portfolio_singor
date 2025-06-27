@@ -1,0 +1,14 @@
+# render.yaml
+services:
+  - type: web
+    name: portfolio-singor-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    plan: free
+    autoDeploy: true

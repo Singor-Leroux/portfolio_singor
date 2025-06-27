@@ -14,7 +14,9 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node"],
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "skipDefaultLibCheck": true,

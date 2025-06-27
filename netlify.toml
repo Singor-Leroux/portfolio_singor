@@ -1,5 +1,5 @@
 [build]
-  command = "cd client && npm run build"
+  command = "cd client && npm install && npm run build"
   publish = "client/dist"
   base = "/"
 
@@ -11,6 +11,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"

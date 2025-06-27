@@ -46,7 +46,9 @@ const allowedOrigins = [
   'http://localhost:5002', // Client
   'http://127.0.0.1:5002', // Client (alternative)
   'http://localhost:5002',  // Client (sans /)
-  'http://127.0.0.1:5002'   // Client (sans /, alternative)
+  'http://127.0.0.1:5002',   // Client (sans /, alternative)
+  'https://portfolio-leroux.netlify.app', // Production frontend
+  'https://portfolio-singor-backend.onrender.com' // Backend
 ];
 
 // Fonction pour normaliser les origines
@@ -80,15 +82,29 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
 // Configuration CORS de base réutilisable
 const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Autoriser les requêtes sans origine (comme les applications mobiles, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Vérifier si l'origine est autorisée
-    if (isOriginAllowed(origin)) {
-      callback(null, true);
+    // En production, on vérifie strictement les origines
+    if (process.env.NODE_ENV === 'production') {
+      // Si pas d'origine, on refuse (plus strict en production)
+      if (!origin) {
+        console.warn('Requête sans origine en production');
+        return callback(new Error('Origine requise en production'));
+      }
+      
+      // Vérifier si l'origine est autorisée
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      } else {
+        console.warn(`Origin non autorisée en production: ${origin}`);
+        return callback(new Error('Non autorisé par CORS'));
+      }
     } else {
-      console.warn(`Origin non autorisée: ${origin}`);
-      callback(new Error('Non autorisé par CORS'));
+      // En développement, on est plus permissif
+      if (!origin || isOriginAllowed(origin)) {
+        return callback(null, true);
+      } else {
+        console.warn(`Origin non autorisée en développement: ${origin}`);
+        return callback(new Error('Non autorisé par CORS'));
+      }
     }
   },
   credentials: true, // Important: permet d'envoyer les cookies d'authentification
@@ -99,6 +115,11 @@ const corsOptions: cors.CorsOptions = {
     'X-Requested-With',
     'Accept',
     'Origin',
+    'X-Access-Token',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods',
+    'Access-Control-Allow-Credentials',
     'Access-Control-Allow-Credentials',
     'Access-Control-Allow-Headers',
     'Access-Control-Request-Method',
@@ -179,16 +200,43 @@ const limiter = rateLimit({
 // Appliquer le rate limiting uniquement sur les routes API
 app.use('/api', limiter);
 
-// Middleware pour ajouter les en-têtes CORS aux fichiers statiques
-app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
+// Middleware pour gérer les en-têtes CORS de manière plus flexible
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
   
-  // Si c'est une requête OPTIONS, répondre immédiatement
+  // Vérifier si l'origine est autorisée
+  if (origin && isOriginAllowed(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Access-Token');
+    res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type, X-Total-Count');
+    
+    // Mettre en cache les en-têtes CORS pour 24 heures
+    res.header('Access-Control-Max-Age', '86400');
+  }
+
+  // Répondre immédiatement aux requêtes OPTIONS (prévol)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  next();
+});
+
+// Middleware spécifique pour les fichiers statiques
+app.use('/uploads', (req, res, next) => {
+  const origin = req.headers.origin;
+  
+  if (origin && isOriginAllowed(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
   }
   
   next();

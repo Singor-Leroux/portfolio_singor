@@ -37,7 +37,7 @@ const PORT = process.env.PORT || 5000;
 // Configuration du trust proxy pour Render
 app.set('trust proxy', 1); // Fait confiance au premier proxy
 
-// Configuration CORS pour WebSocket et API
+// Configuration CORS simplifiée
 const allowedOrigins = [
   'http://localhost:5173', // Vite dev server
   'http://localhost:3000', // React dev server
@@ -45,96 +45,34 @@ const allowedOrigins = [
   'http://localhost:5001', // Admin
   'http://localhost:5002', // Client
   'http://127.0.0.1:5002', // Client (alternative)
-  'http://localhost:5002',  // Client (sans /)
-  'http://127.0.0.1:5002',   // Client (sans /, alternative)
   'https://portfolio-leroux.netlify.app', // Production frontend
   'https://portfolio-singor-backend.onrender.com' // Backend
 ];
 
-// Fonction pour normaliser les origines
-const normalizeOrigin = (origin: string): string => {
-  try {
-    const url = new URL(origin);
-    return `${url.protocol}//${url.host}`;
-  } catch (e) {
-    return origin;
-  }
-};
-
-// Fonction pour vérifier si une origine est autorisée
-const isOriginAllowed = (origin: string | undefined): boolean => {
-  if (!origin) return false;
-  
-  // Normaliser l'origine pour la comparaison
-  const normalizedOrigin = normalizeOrigin(origin);
-  
-  // Vérifier si l'origine est dans la liste autorisée
-  return allowedOrigins.some(allowedOrigin => {
-    try {
-      const normalizedAllowed = normalizeOrigin(allowedOrigin);
-      return normalizedOrigin === normalizedAllowed;
-    } catch (e) {
-      return false;
-    }
-  });
-};
-
-// Configuration CORS de base réutilisable
+// Configuration CORS de base
 const corsOptions: cors.CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // En production, on vérifie strictement les origines
-    if (process.env.NODE_ENV === 'production') {
-      // Si pas d'origine, on refuse (plus strict en production)
-      if (!origin) {
-        console.warn('Requête sans origine en production');
-        return callback(new Error('Origine requise en production'));
-      }
-      
-      // Vérifier si l'origine est autorisée
-      if (isOriginAllowed(origin)) {
-        return callback(null, true);
-      } else {
-        console.warn(`Origin non autorisée en production: ${origin}`);
-        return callback(new Error('Non autorisé par CORS'));
-      }
-    } else {
-      // En développement, on est plus permissif
-      if (!origin || isOriginAllowed(origin)) {
-        return callback(null, true);
-      } else {
-        console.warn(`Origin non autorisée en développement: ${origin}`);
-        return callback(new Error('Non autorisé par CORS'));
-      }
+  origin: (origin, callback) => {
+    // En développement, on accepte toutes les origines
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
     }
+    
+    // En production, on vérifie l'origine
+    if (origin && allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    console.warn(`Origin non autorisée: ${origin}`);
+    callback(new Error('Non autorisé par CORS'));
   },
-  credentials: true, // Important: permet d'envoyer les cookies d'authentification
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
+    'Content-Type',
+    'Authorization',
     'X-Requested-With',
     'Accept',
-    'Origin',
     'X-Access-Token',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Credentials',
-    'Access-Control-Allow-Credentials',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers',
-    'X-Forwarded-For',
-    'X-CSRF-Token',
-    'X-Real-IP',
-    'X-Forwarded-Proto',
-    'X-Forwarded-Host',
-    'X-Forwarded-Port',
-    'X-Forwarded-Server',
-    'X-Forwarded-User',
-    'X-Forwarded-Prefix',
-    'X-Forwarded-Path',
-    'X-Forwarded-Uri',
     'X-Forwarded-For',
     'X-Forwarded-Proto',
     'X-Forwarded-Host',
@@ -144,14 +82,12 @@ const corsOptions: cors.CorsOptions = {
     'X-Forwarded-Prefix',
     'X-Forwarded-Path',
     'X-Forwarded-Uri',
-    'Date',
     'X-Api-Version',
     'X-CSRF-Token',
     'X-HTTP-Method-Override',
     'Set-Cookie',
     'Cookie'
   ],
-  // Exposer les en-têtes nécessaires
   exposedHeaders: [
     'Content-Range',
     'X-Total-Count',
@@ -162,11 +98,11 @@ const corsOptions: cors.CorsOptions = {
   ]
 };
 
-// Handle preflight requests
-app.options('*', cors(corsOptions));
-
 // Configuration CORS pour l'application
 app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
 // Middleware pour parser le JSON
 app.use(express.json());
@@ -204,16 +140,16 @@ app.use('/api', limiter);
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Vérifier si l'origine est autorisée
-  if (origin && isOriginAllowed(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Access-Token');
-    res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type, X-Total-Count');
-    
-    // Mettre en cache les en-têtes CORS pour 24 heures
-    res.header('Access-Control-Max-Age', '86400');
+  if (origin) {
+    // En développement, on accepte toutes les origines
+    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Access-Token');
+      res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type, X-Total-Count');
+      res.header('Access-Control-Max-Age', '86400');
+    }
   }
 
   // Répondre immédiatement aux requêtes OPTIONS (prévol)
@@ -228,14 +164,17 @@ app.use((req, res, next) => {
 app.use('/uploads', (req, res, next) => {
   const origin = req.headers.origin;
   
-  if (origin && isOriginAllowed(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
+  if (origin) {
+    // En développement, on accepte toutes les origines
+    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+      }
     }
   }
   

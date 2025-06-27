@@ -879,6 +879,7 @@ const ProjectsPage = () => {
             
             // Panneau des colonnes
             // Propriétés de localisation supportées
+            // Suppression de columnsPanelTextFieldLabel car non supportée
             toolbarColumns: 'Colonnes',
             toolbarFilters: 'Filtres',
             

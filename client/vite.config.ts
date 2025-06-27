@@ -82,8 +82,10 @@ export default defineConfig({
   build: {
     // Dossiers de sortie
     outDir: 'dist',
-    assetsDir: 'assets',
+    emptyOutDir: true,
     sourcemap: true,
+    // Configuration du répertoire de sortie
+    assetsDir: 'assets',
     minify: 'terser',
     terserOptions: {
       compress: {

@@ -1,4 +1,5 @@
-import { Box, Container, Grid, Paper, Typography } from '@mui/material';
+import { Box, Container, Paper, Typography } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import {
   People as PeopleIcon,
   Assessment as AssessmentIcon,
@@ -47,12 +48,12 @@ const DashboardPage = () => {
       
       <Grid container spacing={3}>
         {stats.map((stat, index) => (
-          <Grid key={index} item xs={12} sm={6} md={3}>
+          <Grid key={index} xs={12} sm={6} md={3}>
             <StatCard {...stat} />
           </Grid>
         ))}
         
-        <Grid item xs={12}>
+        <Grid xs={12}>
           <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
             <Typography component="h2" variant="h6" color="primary" gutterBottom>
               Vue d'ensemble
@@ -73,20 +74,22 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom>
+        <Grid xs={12} md={8}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }}>
+            <Typography component="h2" variant="h6" color="primary" gutterBottom>
               Activité récente
             </Typography>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Aucune activité récente
-              </Typography>
-            </Box>
+          </Paper>
+        </Grid>
+        <Grid xs={12} md={4}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }}>
+            <Typography component="h2" variant="h6" color="primary" gutterBottom>
+              Notifications
+            </Typography>
           </Paper>
         </Grid>
         
-        <Grid item xs={12} md={6}>
+        <Grid xs={12}>
           <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" gutterBottom>
               Projets récents

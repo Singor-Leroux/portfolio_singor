@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete, FileDownload, Search, Clear } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { blue, green, orange, grey, yellow } from '@mui/material/colors';
+import { blue, green, orange, grey } from '@mui/material/colors';
 import { Skill, getSkills, createSkill, updateSkill, deleteSkill, SkillLevel, SkillCreationPayload, SkillUpdatePayload } from '../api/skills';
 
 const SkillsPage = () => {
@@ -118,7 +118,7 @@ const SkillsPage = () => {
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'Débutant': return blue[500];
-      case 'Intermédiaire': return yellow[500];
+      case 'Intermédiaire': return '#ffd600'; // Jaune vif
       case 'Confirmé': return orange[500];
       case 'Expert': return green[500];
       default: return grey[500];
@@ -161,8 +161,8 @@ const SkillsPage = () => {
       field: 'category', 
       headerName: 'Catégorie', 
       width: 150,
-      valueGetter: (params: { row: { category?: string } }) => {
-        const value = params.row?.category || '';
+      valueGetter: (params: any) => {
+        const value = params?.row?.category || '';
         switch (value) {
           case 'frontend': return 'Frontend';
           case 'backend': return 'Backend';

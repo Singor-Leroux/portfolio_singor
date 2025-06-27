@@ -195,6 +195,25 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads
   }
 }));
 
+// Route racine
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Bienvenue sur l\'API de Portfolio',
+    documentation: 'https://github.com/Singor-Leroux/portfolio_singor',
+    api_endpoints: {
+      auth: '/api/v1/auth',
+      admin: '/api/v1/admin',
+      skills: '/api/v1/skills',
+      projects: '/api/v1/projects',
+      experiences: '/api/v1/experiences',
+      education: '/api/v1/education',
+      certifications: '/api/v1/certifications',
+      contact: '/api/v1/contact'
+    }
+  });
+});
+
 // Routes de l'API
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);

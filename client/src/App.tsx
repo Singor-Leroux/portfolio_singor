@@ -28,7 +28,6 @@ import Footer from './components/layout/Footer';
 import LoginPage from './admin/pages/LoginPage';
 import RegisterPage from './admin/pages/RegisterPage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { personalInfo } from './data';
 import AdminApp from './admin/AdminApp';
 
 // Composant de chargement global
@@ -131,7 +130,7 @@ const UnauthorizedPage = () => {
 // Composant principal de l'application
 const AppContent = () => {
   useEffect(() => {
-    document.title = `${personalInfo.name} | ${personalInfo.title}`;
+    document.title = `Portfolio | Développeur Full Stack`;
   }, []);
 
   return (

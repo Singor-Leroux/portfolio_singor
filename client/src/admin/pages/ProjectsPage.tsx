@@ -1,9 +1,30 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useProjectSocket } from '../hooks/useProjectSocket';
 import { styled } from '@mui/material/styles';
+
+// Fonction utilitaire pour créer un objet conforme à ProjectCreationPayload
+const createProjectFormData = (data: {
+  title: string;
+  description: string;
+  technologies: string; // Chaîne séparée par des virgules
+  featured: boolean;
+  githubUrl?: string;
+  demoUrl?: string;
+  imageFile: File;
+}): ProjectCreationPayload => {
+  return {
+    title: data.title,
+    description: data.description,
+    technologies: data.technologies.split(',').map((tech: string) => tech.trim()).filter(Boolean),
+    featured: data.featured,
+    ...(data.githubUrl && { githubUrl: data.githubUrl }),
+    ...(data.demoUrl && { demoUrl: data.demoUrl }),
+    imageFile: data.imageFile
+  };
+};
+
 import {
-  // Composants Material-UI
   Box, 
   Button, 
   Container, 
@@ -27,7 +48,6 @@ import {
   Chip,
   Tooltip,
   Avatar,
-  // Switch,
   Link
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -44,9 +64,7 @@ import {
   Refresh as RefreshIcon,
   Save as SaveIcon,
   Search as SearchIcon,
-  // CheckCircle as CheckCircleIcon,
   ErrorOutline as ErrorOutlineIcon,
-  // Star as StarIcon,
   StarBorder as StarBorderIcon,
   Language as LanguageIcon,
   Info as InfoIcon,
@@ -73,18 +91,16 @@ import {
 const Alert = MuiAlert;
 
 interface ProjectFormState {
+  _id?: string;
   title: string;
   description: string;
-  technologies: string;
+  technologies: string; // Chaîne séparée par des virgules pour le formulaire
+  featured: boolean;
   githubUrl: string;
   demoUrl: string;
-  featured: boolean;
   imageFile?: File | null;
-  imagePreview?: string;
+  imagePreview?: string | null;
   imageUrl: string;
-  _id?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 const initialProjectFormState: ProjectFormState = {
@@ -315,9 +331,7 @@ const ProjectsPage = () => {
       imageFile: null,
       imagePreview: getFullImageUrl(project.imageUrl),
       imageUrl: project.imageUrl,
-      _id: project._id,
-      createdAt: project.createdAt,
-      updatedAt: project.updatedAt
+      _id: project._id
     });
     
     setEditingId(project._id);
@@ -536,16 +550,17 @@ const ProjectsPage = () => {
           throw new Error("Un fichier image est requis pour la création");
         }
         
-        const formData = new FormData();
-        formData.append('title', currentProject.title.trim());
-        formData.append('description', currentProject.description.trim());
-        formData.append('technologies', JSON.stringify(technologies));
-        formData.append('featured', currentProject.featured.toString());
-        if (currentProject.githubUrl) formData.append('githubUrl', currentProject.githubUrl.trim());
-        if (currentProject.demoUrl) formData.append('demoUrl', currentProject.demoUrl.trim());
-        formData.append('imageFile', currentProject.imageFile);
+        const formData = createProjectFormData({
+          title: currentProject.title.trim(),
+          description: currentProject.description.trim(),
+          technologies: JSON.stringify(technologies),
+          featured: currentProject.featured,
+          githubUrl: currentProject.githubUrl ? currentProject.githubUrl.trim() : undefined,
+          demoUrl: currentProject.demoUrl ? currentProject.demoUrl.trim() : undefined,
+          imageFile: currentProject.imageFile
+        });
         
-        await createMutation.mutateAsync(formData as any);
+        await createMutation.mutateAsync(formData);
       }
     } catch (error) {
       console.error('Erreur lors de la soumission du formulaire:', error);
@@ -1174,11 +1189,12 @@ const ProjectsPage = () => {
                           <Box 
                             component="img"
                             src={currentProject.imagePreview || 
-                                 (currentProject.imageUrl.startsWith('http') || 
-                                  currentProject.imageUrl.startsWith('data:') ||
-                                  currentProject.imageUrl.startsWith('blob:')
+                              (currentProject.imageUrl ? 
+                                (currentProject.imageUrl.startsWith('http') || 
+                                currentProject.imageUrl.startsWith('blob:')
                                   ? currentProject.imageUrl 
-                                  : `${IMAGE_BASE_URL}${currentProject.imageUrl.startsWith('/') ? '' : '/'}${currentProject.imageUrl}`)}
+                                  : `${IMAGE_BASE_URL}${currentProject.imageUrl.startsWith('/') ? '' : '/'}${currentProject.imageUrl}`)
+                              : '')}
                             alt="Aperçu du projet"
                             sx={{
                               width: '100%',
@@ -1222,13 +1238,16 @@ const ProjectsPage = () => {
                                 size="small" 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const url = currentProject.imagePreview || 
-                                    (currentProject.imageUrl.startsWith('http') || 
-                                     currentProject.imageUrl.startsWith('data:') ||
-                                     currentProject.imageUrl.startsWith('blob:')
-                                      ? currentProject.imageUrl 
-                                      : `${IMAGE_BASE_URL}${currentProject.imageUrl.startsWith('/') ? '' : '/'}${currentProject.imageUrl}`);
-                                  setPreviewImage(url);
+                                  if (currentProject.imagePreview) {
+                                    setPreviewImage(currentProject.imagePreview);
+                                  } else if (currentProject.imageUrl) {
+                                    const url = currentProject.imageUrl.startsWith('http') || 
+                                      currentProject.imageUrl.startsWith('data:') ||
+                                      currentProject.imageUrl.startsWith('blob:')
+                                        ? currentProject.imageUrl 
+                                        : `${IMAGE_BASE_URL}${currentProject.imageUrl.startsWith('/') ? '' : '/'}${currentProject.imageUrl}`;
+                                    setPreviewImage(url);
+                                  }
                                 }}
                               >
                                 <ZoomInIcon fontSize="small" />

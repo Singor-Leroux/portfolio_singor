@@ -11,7 +11,7 @@ import {
   getExperiences, 
   createExperience, 
   updateExperience, 
-  deleteExperience, 
+  deleteExperience,
   ExperienceCreationPayload, 
   ExperienceUpdatePayload 
 } from '../api/experiences';
@@ -542,7 +542,7 @@ const ExperiencesPage = () => {
             <DataGrid
               rows={filteredExperiences}
               columns={columns}
-              getRowId={(row) => row._id || Math.random().toString(36).substr(2, 9)}
+              getRowId={(row: ExperienceBE) => row._id || Math.random().toString(36).substr(2, 9)}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10, 25, 50]}

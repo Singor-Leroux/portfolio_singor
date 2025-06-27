@@ -111,6 +111,8 @@ const SkillsPage = () => {
     }
   }, [skillToDelete, deleteMutation]);
 
+
+
   if (isLoading) return <CircularProgress />;
   if (error) return <Alert severity="error">Erreur lors du chargement des compétences</Alert>;
 

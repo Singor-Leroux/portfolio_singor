@@ -115,7 +115,7 @@ const About: React.FC = () => {
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">Localisation</h4>
                   <p className="text-gray-600 dark:text-blue-300">
-                    {userData.location || userData.address || 'Non spécifiée'}
+                    {userData.address || 'Non spécifiée'}
                   </p>
                 </div>
               </div>

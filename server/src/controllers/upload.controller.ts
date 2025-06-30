@@ -1,5 +1,4 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { IRequestWithUser, IResponse } from '../types/express';
 import User from '../models/user.model';
 import { asyncHandler } from '../utils/asyncHandler';
 import { deleteOldProfileImage, getProfileImagePath } from '../utils/fileUpload';
@@ -7,7 +6,7 @@ import { deleteOldProfileImage, getProfileImagePath } from '../utils/fileUpload'
 // @desc    Téléverser une image de profil
 // @route   PUT /api/users/upload-profile-image
 // @access  Privé
-export const uploadProfileImage = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const uploadProfileImage = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -52,7 +51,7 @@ export const uploadProfileImage = asyncHandler(async (req: AuthRequest, res: Res
 // @desc    Supprimer l'image de profil
 // @route   DELETE /api/users/remove-profile-image
 // @access  Privé
-export const removeProfileImage = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const removeProfileImage = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   // Récupérer l'utilisateur actuel
   const user = await User.findById(req.user?._id);
 

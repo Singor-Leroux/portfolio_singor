@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createCertification,
   getCertifications,
-  getCertificationById,
+  getCertification,
   updateCertification,
   deleteCertification,
 } from '../controllers/certification.controller';
@@ -17,7 +17,7 @@ router.route('/')
   .post(protect as any, admin as any, upload.single('certificationImage'), createCertification);
 
 router.route('/:id')
-  .get(getCertificationById)
+  .get(getCertification)
   .put(protect as any, admin as any, upload.single('certificationImage'), updateCertification)
   .delete(protect as any, admin as any, deleteCertification);
 

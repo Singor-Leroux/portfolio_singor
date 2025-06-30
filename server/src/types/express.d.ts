@@ -64,9 +64,29 @@ declare global {
   }
 }
 
+import { Request as ExpressRequest, Response as ExpressResponse, NextFunction } from 'express';
+
+// Extension de l'interface Request d'Express
+declare global {
+  namespace Express {
+    interface Request {
+      user?: IUser;
+      [key: string]: any;
+    }
+  }
+}
+
 // Interface pour les requêtes avec utilisateur authentifié
 export interface IRequestWithUser extends ExpressRequest {
-  user: IUser;
+  user?: IUser;
+  body: any;
+  query: any;
+  params: any;
+}
+
+// Interface pour les réponses
+export interface IResponse extends ExpressResponse {
+  [key: string]: any;
 }
 
 export {};

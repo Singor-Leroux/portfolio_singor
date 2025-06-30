@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createEducation,
   getEducations,
-  getEducationById,
+  getEducation,
   updateEducation,
   deleteEducation,
 } from '../controllers/education.controller';
@@ -16,7 +16,7 @@ router.route('/')
   .post(protect as any, admin as any, createEducation);
 
 router.route('/:id')
-  .get(getEducationById)
+  .get(getEducation)
   .put(protect as any, admin as any, updateEducation)
   .delete(protect as any, admin as any, deleteEducation);
 

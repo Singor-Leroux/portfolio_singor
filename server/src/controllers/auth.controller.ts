@@ -1,11 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction } from 'express';
+import { IRequestWithUser, IResponse } from '../types/express';
 import { validationResult } from 'express-validator';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import User from '../models/user.model';
 import { IUser } from '../models/user.model';
 import { asyncHandler } from '../utils/asyncHandler';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { ErrorResponse } from '../utils/errorResponse.utils';
 import { sendConfirmationEmail } from '../utils/email.utils';
 import { 
   USER_STATUS, 
@@ -40,7 +41,21 @@ export interface IAuthResponse {
 // @desc    Inscription d'un nouvel utilisateur
 // @route   POST /api/auth/register
 // @access  Public
-export const register = asyncHandler(async (req: Request, res: Response) => {
+interface RegisterBody {
+  firstName: string;
+  lastName: string;
+  title: string;
+  about: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  address?: string;
+  github?: string;
+  linkedin?: string;
+  twitter?: string;
+}
+
+export const register = asyncHandler(async (req: IRequestWithUser & { body: RegisterBody }, res: IResponse, next: NextFunction) => {
   // Validation des données
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -132,7 +147,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 // @desc    Confirmer l'email d'un utilisateur
 // @route   GET /api/auth/confirm-email
 // @access  Public
-export const confirmEmail = asyncHandler(async (req: Request, res: Response) => {
+export const confirmEmail = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   const { token } = req.query;
 
   if (!token) {
@@ -171,14 +186,15 @@ export const confirmEmail = asyncHandler(async (req: Request, res: Response) => 
 // @desc    Renvoyer l'email de confirmation
 // @route   POST /api/auth/resend-verification-email
 // @access  Public
-export const resendVerificationEmail = asyncHandler(async (req: Request, res: Response) => {
+interface ResendVerificationEmailBody {
+  email: string;
+}
+
+export const resendVerificationEmail = asyncHandler(async (req: IRequestWithUser & { body: ResendVerificationEmailBody }, res: IResponse, next: NextFunction) => {
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).json({
-      success: false,
-      message: 'Veuillez fournir une adresse email',
-    });
+    return next(new ErrorResponse('Veuillez fournir une adresse email', 400));
   }
 
   const user = await User.findOne({ email });
@@ -229,7 +245,12 @@ export const resendVerificationEmail = asyncHandler(async (req: Request, res: Re
 // @desc    Connexion d'un utilisateur
 // @route   POST /api/auth/login
 // @access  Public
-export const login = asyncHandler(async (req: Request, res: Response) => {
+interface LoginBody {
+  email: string;
+  password: string;
+}
+
+export const login = asyncHandler(async (req: IRequestWithUser & { body: LoginBody }, res: IResponse, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -295,14 +316,14 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
 
-  // Générer le token JWT
+  // Appeler sendTokenResponse
   return sendTokenResponse(user, 200, res);
 });
 
 // @desc    Récupérer le profil de l'utilisateur connecté
 // @route   GET /api/auth/me
 // @access  Privé
-export const getMe = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getMe = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -321,7 +342,7 @@ export const getMe = asyncHandler(async (req: AuthRequest, res: Response) => {
 // @desc    Mettre à jour les détails de l'utilisateur
 // @route   PUT /api/auth/updatedetails
 // @access  Privé
-export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const updateDetails = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -357,7 +378,12 @@ export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response
 // @desc    Mettre à jour le mot de passe
 // @route   PUT /api/auth/updatepassword
 // @access  Privé
-export const updatePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+interface UpdatePasswordBody {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export const updatePassword = asyncHandler(async (req: IRequestWithUser & { body: UpdatePasswordBody }, res: IResponse, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -388,8 +414,51 @@ export const updatePassword = asyncHandler(async (req: AuthRequest, res: Respons
   return sendTokenResponse(user, 200, res);
 });
 
+// @desc    Mot de passe oublié
+// @route   POST /api/auth/forgotpassword
+// @access  Public
+interface ForgotPasswordQuery {
+  token?: string;
+}
+
+export const forgotPassword = asyncHandler(async (req: IRequestWithUser & { query: ForgotPasswordQuery }, res: IResponse, next: NextFunction) => {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      message: 'Token de vérification manquant',
+    });
+  }
+
+  // Trouver l'utilisateur avec ce token non expiré
+  const user = await User.findOne({
+    emailVerificationToken: token.toString(),
+    emailVerificationExpires: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: 'Lien de vérification invalide ou expiré',
+    });
+  }
+
+  // Mettre à jour l'utilisateur
+  user.status = USER_STATUS.ACTIVE;
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  
+  await user.save({ validateBeforeSave: false });
+
+  // Rediriger vers la page de connexion avec un message de succès
+  const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  return res.redirect(`${frontendUrl}/login?verified=true`);
+});
+
 // Helper pour envoyer la réponse avec le token
-const sendTokenResponse = (user: IUser, statusCode: number, res: Response) => {
+const sendTokenResponse = (user: IUser, statusCode: number, res: IResponse) => {
   // Créer le token
   const token = user.generateAuthToken();
 
@@ -439,7 +508,7 @@ const sendTokenResponse = (user: IUser, statusCode: number, res: Response) => {
 // @desc    Déconnecter l'utilisateur / effacer le cookie
 // @route   GET /api/auth/logout
 // @access  Privé
-export const logout = (req: Request, res: Response): void => {
+export const logout = (req: IRequestWithUser, res: IResponse, next: NextFunction): void => {
   const isProduction = process.env.NODE_ENV === 'production';
   
   // Configuration de base du cookie

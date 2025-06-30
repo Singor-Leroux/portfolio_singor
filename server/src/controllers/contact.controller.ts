@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import nodemailer from 'nodemailer';
 import { config } from '../config/config';
+import { IRequestWithUser, IResponse } from '../types/express';
 
 interface ContactFormData {
   name: string;
@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
  * @route POST /api/contact
  * @access Public
  */
-export const sendContactEmail = async (req: Request, res: Response) => {
+export const sendContactEmail = async (req: IRequestWithUser, res: IResponse) => {
   try {
     // Validation des données
     const errors = validationResult(req);

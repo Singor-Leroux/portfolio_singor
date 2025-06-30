@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { IRequestWithUser, IResponse } from '../types/express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ErrorResponse } from '../utils/errorResponse.utils';
 import Education, { IEducation } from '../models/Education.model';
@@ -45,7 +45,19 @@ const transformArrayToApiResponse = (docs: IEducation[]): TransformedEducation[]
 // @desc    Créer une nouvelle formation
 // @route   POST /api/v1/educations
 // @access  Private/Admin
-export const createEducation = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface CreateEducationBody {
+  school: string;
+  degree: string;
+  fieldOfStudy: string;
+  from: Date;
+  to?: Date;
+  current?: boolean;
+  grade?: string;
+  description?: string;
+  activities?: string[];
+}
+
+export const createEducation = asyncHandler(async (req: IRequestWithUser & { body: CreateEducationBody }, res: IResponse, next: Function) => {
   const { institution, ...restOfBody } = req.body;
   const educationDataToCreate: Partial<IEducation> = {
     ...restOfBody,
@@ -66,7 +78,7 @@ export const createEducation = asyncHandler(async (req: Request, res: Response, 
 // @desc    Récupérer toutes les formations
 // @route   GET /api/v1/educations
 // @access  Public (ou Private/Admin)
-export const getEducations = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getEducations = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const educationDocs = await Education.find().sort({ startDate: -1 });
   const responseData = transformArrayToApiResponse(educationDocs);
 
@@ -80,7 +92,7 @@ export const getEducations = asyncHandler(async (req: Request, res: Response, ne
 // @desc    Récupérer une formation par son ID
 // @route   GET /api/v1/educations/:id
 // @access  Public (ou Private/Admin)
-export const getEducationById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getEducation = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const educationDoc = await Education.findById(req.params.id);
   if (!educationDoc) {
     return next(new ErrorResponse(`Formation non trouvée avec l'ID ${req.params.id}`, 404));
@@ -96,7 +108,19 @@ export const getEducationById = asyncHandler(async (req: Request, res: Response,
 // @desc    Mettre à jour une formation
 // @route   PUT /api/v1/educations/:id
 // @access  Private/Admin
-export const updateEducation = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface UpdateEducationBody {
+  school?: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  from?: Date;
+  to?: Date | null;
+  current?: boolean;
+  grade?: string;
+  description?: string;
+  activities?: string[];
+}
+
+export const updateEducation = asyncHandler(async (req: IRequestWithUser & { body: UpdateEducationBody }, res: IResponse, next: Function) => {
   const educationDoc = await Education.findById(req.params.id);
 
   if (!educationDoc) {
@@ -127,7 +151,7 @@ export const updateEducation = asyncHandler(async (req: Request, res: Response, 
 // @desc    Supprimer une formation
 // @route   DELETE /api/v1/educations/:id
 // @access  Private/Admin
-export const deleteEducation = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const deleteEducation = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const education = await Education.findById(req.params.id);
 
   if (!education) {

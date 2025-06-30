@@ -1,12 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
-import SkillModel from '../models/Skill.model'; // Importer le modèle Skill
-import { asyncHandler } from '../utils/asyncHandler'; // Ajustement du chemin d'importation
-import { ErrorResponse } from '../utils/errorResponse.utils'; // Classe d'erreur personnalisée
+import { IRequestWithUser, IResponse } from '../types/express';
+import SkillModel from '../models/Skill.model';
+import { asyncHandler } from '../utils/asyncHandler';
+import { ErrorResponse } from '../utils/errorResponse.utils';
 
 // @desc    Get all skills
 // @route   GET /api/v1/skills
 // @access  Private/Admin (ou public selon besoin)
-export const getSkills = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getSkills = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const skills = await SkillModel.find(req.query); // Permet le filtrage simple via query params
 
   res.status(200).json({
@@ -19,7 +19,7 @@ export const getSkills = asyncHandler(async (req: Request, res: Response, next: 
 // @desc    Get single skill
 // @route   GET /api/v1/skills/:id
 // @access  Private/Admin (ou public)
-export const getSkill = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getSkill = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const skill = await SkillModel.findById(req.params.id);
 
   if (!skill) {
@@ -35,7 +35,15 @@ export const getSkill = asyncHandler(async (req: Request, res: Response, next: N
 // @desc    Create new skill
 // @route   POST /api/v1/skills
 // @access  Private/Admin
-export const createSkill = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface CreateSkillBody {
+  name: string;
+  level: number;
+  category: string;
+  icon?: string;
+  color?: string;
+}
+
+export const createSkill = asyncHandler(async (req: IRequestWithUser & { body: CreateSkillBody }, res: IResponse, next: Function) => {
   // req.body devrait contenir { name, level?, category? }
   const skill = await SkillModel.create(req.body);
 
@@ -48,7 +56,15 @@ export const createSkill = asyncHandler(async (req: Request, res: Response, next
 // @desc    Update skill
 // @route   PUT /api/v1/skills/:id
 // @access  Private/Admin
-export const updateSkill = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface UpdateSkillBody {
+  name?: string;
+  level?: number;
+  category?: string;
+  icon?: string;
+  color?: string;
+}
+
+export const updateSkill = asyncHandler(async (req: IRequestWithUser & { body: UpdateSkillBody }, res: IResponse, next: Function) => {
   let skill = await SkillModel.findById(req.params.id);
 
   if (!skill) {
@@ -70,7 +86,7 @@ export const updateSkill = asyncHandler(async (req: Request, res: Response, next
 // @desc    Delete skill
 // @route   DELETE /api/v1/skills/:id
 // @access  Private/Admin
-export const deleteSkill = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const deleteSkill = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const skill = await SkillModel.findById(req.params.id);
 
   if (!skill) {

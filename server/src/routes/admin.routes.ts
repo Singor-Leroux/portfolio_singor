@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { 
   getUsers, 
-  getUser, 
+  getUserById, 
   updateUser, 
   deleteUser, 
   updateUserRole 
@@ -21,7 +21,7 @@ router.route('/users')
   .get(getUsers as any);
 
 router.route('/users/:id')
-  .get(getUser as any)
+  .get(getUserById as any)
   .put(updateUser as any)
   .delete(deleteUser as any);
 

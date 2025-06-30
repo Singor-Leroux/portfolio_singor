@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createExperience,
   getExperiences,
-  getExperienceById,
+  getExperience,
   updateExperience,
   deleteExperience,
 } from '../controllers/experience.controller';
@@ -17,7 +17,7 @@ router.route('/')
   .post(protect as any, admin as any, createExperience); // Seul l'admin peut cr\u00E9er
 
 router.route('/:id')
-  .get(getExperienceById) // Tout le monde peut voir une exp\u00E9rience sp\u00E9cifique
+  .get(getExperience) // Tout le monde peut voir une exp\u00E9rience sp\u00E9cifique
   .put(protect as any, admin as any, updateExperience) // Seul l'admin peut mettre \u00E0 jour
   .delete(protect as any, admin as any, deleteExperience); // Seul l'admin peut supprimer
 

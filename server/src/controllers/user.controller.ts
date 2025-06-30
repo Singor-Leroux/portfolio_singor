@@ -1,8 +1,7 @@
-import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User, { IUser } from '../models/user.model';
 import { asyncHandler } from '../utils/asyncHandler';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { IRequestWithUser, IResponse } from '../types/express';
 
 // @desc    Récupérer tous les utilisateurs (admin)
 // @route   GET /api/users
@@ -10,7 +9,18 @@ import { AuthRequest } from '../middleware/auth.middleware';
 // @desc    Créer un nouvel utilisateur (admin uniquement)
 // @route   POST /api/users
 // @access  Privé/Admin
-export const createUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+interface CreateUserBody {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+  title?: string;
+  about?: string;
+}
+
+export const createUser = asyncHandler(async (req: IRequestWithUser & { body: CreateUserBody }, res: IResponse) => {
   // Vérifier si l'utilisateur est admin
   if (req.user?.role !== 'admin') {
     return res.status(403).json({
@@ -61,7 +71,7 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
 // @desc    Récupérer tous les utilisateurs (admin)
 // @route   GET /api/users
 // @access  Privé/Admin
-export const getUsers = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getUsers = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   // Vérifier si l'utilisateur est admin
   if (req.user?.role !== 'admin') {
     return res.status(403).json({
@@ -82,7 +92,7 @@ export const getUsers = asyncHandler(async (req: AuthRequest, res: Response) => 
 // @desc    Récupérer un utilisateur par ID
 // @route   GET /api/users/:id
 // @access  Privé/Admin
-export const getUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getUser = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   // Vérifier si l'utilisateur est admin ou s'il accède à son propre profil
   if (req.user?.role !== 'admin' && req.user?.id !== req.params.id) {
     return res.status(403).json({
@@ -109,7 +119,24 @@ export const getUser = asyncHandler(async (req: AuthRequest, res: Response) => {
 // @desc    Mettre à jour un utilisateur
 // @route   PUT /api/users/:id
 // @access  Privé/Admin ou utilisateur propriétaire
-export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+interface UpdateUserBody {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+  title?: string;
+  about?: string;
+  phoneNumber?: string;
+  address?: string;
+  github?: string;
+  linkedin?: string;
+  twitter?: string;
+  cvUrl?: string;
+}
+
+export const updateUser = asyncHandler(async (req: IRequestWithUser & { body: UpdateUserBody }, res: IResponse) => {
   console.log('=== Début de la mise à jour utilisateur ===');
   console.log('ID utilisateur à mettre à jour:', req.params.id);
   console.log('Données reçues:', JSON.stringify(req.body, null, 2));
@@ -356,7 +383,7 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
 // @desc    Supprimer un utilisateur
 // @route   DELETE /api/users/:id
 // @access  Privé/Admin
-export const deleteUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const deleteUser = asyncHandler(async (req: IRequestWithUser, res: IResponse) => {
   console.log('Tentative de suppression d\'utilisateur - User ID:', req.user?._id);
   console.log('Rôle de l\'utilisateur:', req.user?.role);
   
@@ -410,7 +437,11 @@ export const deleteUser = asyncHandler(async (req: AuthRequest, res: Response) =
 // @desc    Changer le rôle d'un utilisateur (admin uniquement)
 // @route   PUT /api/users/:id/role
 // @access  Privé/Admin
-export const changeUserRole = asyncHandler(async (req: AuthRequest, res: Response) => {
+interface ChangeRoleBody {
+  role: string;
+}
+
+export const changeUserRole = asyncHandler(async (req: IRequestWithUser & { body: ChangeRoleBody }, res: IResponse) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({
       success: false,
@@ -461,7 +492,11 @@ export const changeUserRole = asyncHandler(async (req: AuthRequest, res: Respons
 // @desc    Suspendre/réactiver un compte utilisateur (admin uniquement)
 // @route   PUT /api/users/:id/suspend
 // @access  Privé/Admin
-export const toggleUserStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+interface ToggleStatusBody {
+  status: string;
+}
+
+export const toggleUserStatus = asyncHandler(async (req: IRequestWithUser & { body: ToggleStatusBody }, res: IResponse) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({
       success: false,

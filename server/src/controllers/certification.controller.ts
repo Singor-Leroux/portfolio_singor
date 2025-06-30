@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { IRequestWithUser, IResponse } from '../types/express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ErrorResponse } from '../utils/errorResponse.utils';
 import Certification, { ICertification } from '../models/Certification.model';
@@ -43,7 +43,17 @@ const transformCertificationsForFrontend = (certDocs: ICertification[]) => {
 // @desc    Créer une nouvelle certification
 // @route   POST /api/v1/certifications
 // @access  Private/Admin
-export const createCertification = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface CreateCertificationBody {
+  name: string;
+  issuingOrganization: string;
+  issueDate: Date | string;
+  expirationDate?: Date | string;
+  credentialURL?: string;
+  credentialID?: string;
+  imageUrl?: string;
+}
+
+export const createCertification = asyncHandler(async (req: IRequestWithUser & { body: CreateCertificationBody }, res: IResponse, next: Function) => {
   const { title, issuer, date, credentialUrl } = req.body; // imageUrl removed from body destructuring
 
   // Map frontend fields to backend model fields
@@ -75,7 +85,7 @@ export const createCertification = asyncHandler(async (req: Request, res: Respon
 // @desc    Récupérer toutes les certifications
 // @route   GET /api/v1/certifications
 // @access  Public (ou Private/Admin) // Should be Private/Admin if it's for admin panel
-export const getCertifications = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getCertifications = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const certifications = await Certification.find().sort({ issueDate: -1 });
   res.status(200).json({
     success: true,
@@ -87,7 +97,7 @@ export const getCertifications = asyncHandler(async (req: Request, res: Response
 // @desc    Récupérer une certification par son ID
 // @route   GET /api/v1/certifications/:id
 // @access  Public (ou Private/Admin) // Should be Private/Admin
-export const getCertificationById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getCertification = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const certification = await Certification.findById(req.params.id);
   if (!certification) {
     return next(new ErrorResponse(`Certification non trouvée avec l'ID ${req.params.id}`, 404));
@@ -101,7 +111,17 @@ export const getCertificationById = asyncHandler(async (req: Request, res: Respo
 // @desc    Mettre à jour une certification
 // @route   PUT /api/v1/certifications/:id
 // @access  Private/Admin
-export const updateCertification = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface UpdateCertificationBody {
+  name?: string;
+  issuingOrganization?: string;
+  issueDate?: Date | string;
+  expirationDate?: Date | string | null;
+  credentialURL?: string;
+  credentialID?: string;
+  imageUrl?: string;
+}
+
+export const updateCertification = asyncHandler(async (req: IRequestWithUser & { body: UpdateCertificationBody }, res: IResponse, next: Function) => {
   const { title, issuer, date, credentialUrl } = req.body; // imageUrl removed from body destructuring
   const existingImageUrl = req.body.imageUrl; // Keep track of imageUrl sent from frontend (could be empty string)
 
@@ -150,7 +170,7 @@ export const updateCertification = asyncHandler(async (req: Request, res: Respon
 // @desc    Supprimer une certification
 // @route   DELETE /api/v1/certifications/:id
 // @access  Private/Admin
-export const deleteCertification = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const deleteCertification = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: Function) => {
   const certification = await Certification.findById(req.params.id);
 
   if (!certification) {

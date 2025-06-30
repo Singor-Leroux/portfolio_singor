@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { IRequestWithUser, IResponse } from '../types/express';
 import { Server as SocketIOServer } from 'socket.io';
 import ProjectModel, { IProject } from '../models/Project.model';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -19,7 +20,7 @@ interface ProjectEventData {
 }
 
 // Fonction utilitaire pour émettre des événements WebSocket
-const emitProjectEvent = (req: Request, event: ProjectEvent, data: any) => {
+const emitProjectEvent = (req: IRequestWithUser, event: ProjectEvent, data: any) => {
   const io: SocketIOServer = req.app.get('io');
   if (io) {
     const eventData: ProjectEventData = {
@@ -41,7 +42,7 @@ const emitProjectEvent = (req: Request, event: ProjectEvent, data: any) => {
 // @route   GET /api/v1/projects
 // @access  Private/Admin
 // @query   featured (optional) - Filter by featured status
-export const getProjects = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getProjects = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: NextFunction) => {
   try {
     // Build query
     let query: mongoose.Query<IProject[], IProject>;
@@ -117,7 +118,7 @@ export const getProjects = asyncHandler(async (req: Request, res: Response, next
 // @desc    Get single project
 // @route   GET /api/v1/projects/:id
 // @access  Public
-export const getProject = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getProject = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: NextFunction) => {
   const project = await ProjectModel.findById(req.params.id);
 
   if (!project) {
@@ -133,7 +134,16 @@ export const getProject = asyncHandler(async (req: Request, res: Response, next:
 // @desc    Create new project
 // @route   POST /api/v1/projects
 // @access  Private/Admin
-export const createProject = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface CreateProjectBody {
+  title: string;
+  description: string;
+  technologies: string | string[];
+  githubUrl?: string;
+  demoUrl?: string;
+  featured?: boolean;
+}
+
+export const createProject = asyncHandler(async (req: IRequestWithUser & { body: CreateProjectBody }, res: IResponse, next: NextFunction) => {
   try {
     const { title, description, technologies, githubUrl, demoUrl, featured } = req.body;
     
@@ -207,7 +217,18 @@ export const createProject = asyncHandler(async (req: Request, res: Response, ne
 // @desc    Update project
 // @route   PUT /api/v1/projects/:id
 // @access  Private/Admin
-export const updateProject = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+interface UpdateProjectBody {
+  id?: string;
+  title?: string;
+  description?: string;
+  technologies?: string | string[];
+  githubUrl?: string;
+  demoUrl?: string;
+  featured?: boolean;
+  image?: string;
+}
+
+export const updateProject = asyncHandler(async (req: IRequestWithUser & { body: UpdateProjectBody }, res: IResponse, next: NextFunction) => {
   try {
     // Récupérer l'ID depuis les paramètres de la requête ou du body (pour les FormData)
     const projectId = req.params.id || req.body.id;
@@ -341,7 +362,7 @@ export const updateProject = asyncHandler(async (req: Request, res: Response, ne
 // @desc    Delete project
 // @route   DELETE /api/v1/projects/:id
 // @access  Private/Admin
-export const deleteProject = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const deleteProject = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: NextFunction) => {
   try {
     // Récupérer le projet avant la suppression pour l'événement
     const project = await ProjectModel.findById(req.params.id);
@@ -375,7 +396,7 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response, ne
 // @desc    Get featured projects
 // @route   GET /api/v1/projects/featured
 // @access  Public
-export const getFeaturedProjects = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getFeaturedProjects = asyncHandler(async (req: IRequestWithUser, res: IResponse, next: NextFunction) => {
   const projects = await ProjectModel.find({ featured: true }).sort('-createdAt').limit(6);
 
   res.status(200).json({

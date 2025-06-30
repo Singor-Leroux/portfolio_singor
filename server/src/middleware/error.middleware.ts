@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { IRequestWithUser, IResponse, NextFunction } from '../types/express';
 import { MongoServerError } from 'mongodb';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { Error as MongooseError } from 'mongoose';
@@ -68,8 +68,8 @@ class ValidationError extends AppError {
 // Gestionnaire d'erreurs global
 const globalErrorHandler = (
   err: any,
-  req: Request,
-  res: Response,
+  req: IRequestWithUser,
+  res: IResponse,
   next: NextFunction
 ) => {
   // Définir les valeurs par défaut
@@ -151,7 +151,7 @@ const globalErrorHandler = (
 };
 
 // Middleware pour les routes non trouvées
-const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
+const notFoundHandler = (req: IRequestWithUser, res: IResponse, next: NextFunction) => {
   next(new NotFoundError(`Impossible de trouver ${req.originalUrl} sur ce serveur`));
 };
 

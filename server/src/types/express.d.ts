@@ -2,6 +2,9 @@
 import { Request as ExpressRequest, Response as ExpressResponse, NextFunction, RequestHandler } from 'express';
 import { IUser } from '../models/user.model';
 
+// Ré-export des types de base
+export { Request, Response, NextFunction, RequestHandler } from 'express';
+
 // Déclaration des modules manquants
 declare module 'jsonwebtoken' {
   export interface JwtPayload {
@@ -82,11 +85,24 @@ export interface IRequestWithUser extends ExpressRequest {
   body: any;
   query: any;
   params: any;
+  file?: Express.Multer.File;
+  files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
 }
 
 // Interface pour les réponses
 export interface IResponse extends ExpressResponse {
   [key: string]: any;
+}
+
+// Déclaration des modules
+declare global {
+  namespace Express {
+    interface Request {
+      user?: IUser;
+      file?: any;
+      files?: any;
+    }
+  }
 }
 
 export {};

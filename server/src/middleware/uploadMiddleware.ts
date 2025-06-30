@@ -1,7 +1,10 @@
-import multer, { FileFilterCallback, Multer } from 'multer'; // Import Multer type
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { Request } from 'express';
+
+type DestinationCallback = (error: Error | null, destination: string) => void;
+type FileNameCallback = (error: Error | null, filename: string) => void;
 
 // Définir le chemin du dossier de destination
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'certifications');
@@ -13,10 +16,10 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 
 // Configuration du stockage pour Multer
 const storage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
+  destination: (req: Request, file: Express.Multer.File, cb: DestinationCallback) => {
     cb(null, UPLOAD_DIR);
   },
-  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+  filename: (req: Request, file: Express.Multer.File, cb: FileNameCallback) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   },

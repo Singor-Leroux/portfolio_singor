@@ -15,9 +15,9 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node", "express"],
     "typeRoots": [
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "./src/types"
     ],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,

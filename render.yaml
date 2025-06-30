@@ -1,14 +1,15 @@
 services:
   - type: web
     name: portfolio-backend
-    env: docker
-    dockerContext: ./server
-    dockerCommand: npm start
+    env: node
+    buildCommand: |
+      cd server && \
+      npm install && \
+      npm run build
+    startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NPM_CONFIG_PRODUCTION
-        value: "false"  # Pour s'assurer que les devDependencies sont installées
       # Render définit automatiquement la variable PORT
       # Ajoutez ici vos autres variables d'environnement nécessaires
       # - key: MONGODB_URI
@@ -16,7 +17,3 @@ services:
       # - key: JWT_SECRET
       #   value: your-jwt-secret
     plan: free
-    buildCommand: |
-      cd server && \
-      npm install && \
-      npm run build

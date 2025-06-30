@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import User, { IUser } from '../models/user.model';
 
-// Interface pour le payload JWT
-interface JwtPayload {
+// Interface pour le payload JWT personnalisé
+interface ICustomJwtPayload extends JwtPayload {
   id: string;
   role: string;
 }
@@ -36,8 +36,8 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   }
 
   try {
-    // Vérifier le token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    // Vérifier et décoder le token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as ICustomJwtPayload;
 
     // Récupérer l'utilisateur à partir de l'ID dans le token
     const user = await User.findById(decoded.id);

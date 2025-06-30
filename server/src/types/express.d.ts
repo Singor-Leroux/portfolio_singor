@@ -3,7 +3,9 @@ import { Request as ExpressRequest, Response as ExpressResponse, NextFunction, R
 import { IUser } from '../models/user.model';
 
 // Ré-export des types de base
-export { Request, Response, NextFunction, RequestHandler } from 'express';
+export { Request, Response, NextFunction, RequestHandler, Application } from 'express';
+import { Server as HttpServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 
 // Déclaration des modules manquants
 declare module 'jsonwebtoken' {
@@ -85,8 +87,15 @@ export interface IRequestWithUser extends ExpressRequest {
   body: any;
   query: any;
   params: any;
-  file?: Express.Multer.File;
-  files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
+  file?: any; // Utilisation de 'any' pour éviter les conflits de types
+  files?: any; // Utilisation de 'any' pour éviter les conflits de types
+  app: {
+    get: (name: string) => any;
+    set: (name: string, value: any) => void;
+    [key: string]: any;
+  };
+  io?: SocketIOServer; // Ajout du type pour Socket.IO
+  server?: HttpServer; // Ajout du type pour le serveur HTTP
 }
 
 // Interface pour les réponses

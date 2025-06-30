@@ -1,5 +1,8 @@
 // server/src/index.ts
 import express, { Request, Response, NextFunction } from 'express';
+
+// Configuration du port
+const PORT = process.env.PORT || 5000;
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
@@ -32,7 +35,6 @@ import connectDB from './config/db';
 // Initialisation de l'application Express
 const app = express();
 const server = createServer(app);
-const PORT = process.env.PORT || 5000;
 
 // Configuration CORS pour WebSocket et API
 const allowedOrigins = [

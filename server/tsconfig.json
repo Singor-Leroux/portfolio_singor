@@ -1,7 +1,7 @@
 // server/tsconfig.json
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ES2020",
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
@@ -37,8 +37,6 @@
     "**/*.spec.ts"
   ],
   "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node",
     "files": true,
     "transpileOnly": true,
     "compilerOptions": {

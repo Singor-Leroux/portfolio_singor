@@ -7,11 +7,16 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
-    # Ajoutez ici vos autres variables d'environnement nécessaires
-    # - key: MONGODB_URI
-    #   value: your-mongodb-uri
-    # - key: JWT_SECRET
-    #   value: your-jwt-secret
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"  # Pour s'assurer que les devDependencies sont installées
+      # Render définit automatiquement la variable PORT
+      # Ajoutez ici vos autres variables d'environnement nécessaires
+      # - key: MONGODB_URI
+      #   value: your-mongodb-uri
+      # - key: JWT_SECRET
+      #   value: your-jwt-secret
     plan: free
+    buildCommand: |
+      cd server && \
+      npm install && \
+      npm run build

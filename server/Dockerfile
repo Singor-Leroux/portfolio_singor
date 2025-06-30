@@ -2,11 +2,14 @@ FROM node:18-alpine
 
 WORKDIR /usr/src/app
 
+# Install Python and build tools for node-gyp
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies including devDependencies
-RUN npm install --include=dev
+# Install all dependencies
+RUN npm ci --only=production
 
 # Copy source code
 COPY . .
@@ -14,11 +17,11 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove devDependencies after build
-RUN npm prune --omit=dev
+# Clean up build tools to reduce image size
+RUN apk del python3 make g++
 
 # Expose the port the app runs on
-EXPOSE 10000
+EXPOSE $PORT
 
 # Command to run the application
 CMD ["npm", "start"]

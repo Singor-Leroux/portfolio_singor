@@ -1,10 +1,7 @@
-import multer, { FileFilterCallback } from 'multer';
+import multer, { FileFilterCallback, Multer } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { Request } from 'express';
-
-type DestinationCallback = (error: Error | null, destination: string) => void;
-type FileNameCallback = (error: Error | null, filename: string) => void;
 
 // Définir le chemin du dossier de destination pour les projets
 const PROJECT_UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'projects');
@@ -16,10 +13,10 @@ if (!fs.existsSync(PROJECT_UPLOAD_DIR)) {
 
 // Configuration du stockage pour Multer
 const storage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb: DestinationCallback) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     cb(null, PROJECT_UPLOAD_DIR);
   },
-  filename: (req: Request, file: Express.Multer.File, cb: FileNameCallback) => {
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, 'project-' + uniqueSuffix + ext);

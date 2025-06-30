@@ -3,8 +3,8 @@ import { Request } from 'express';
 import path from 'path';
 import fs from 'fs';
 
-type DestinationCallback = (error: Error | null, destination: string) => void;
-type FileNameCallback = (error: Error | null, filename: string) => void;
+type DestinationCallback = (error: Error | null, destination: string) => void
+type FileNameCallback = (error: Error | null, filename: string) => void
 
 // Configuration du stockage pour les CV
 export const storage = multer.diskStorage({

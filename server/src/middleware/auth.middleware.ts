@@ -1,21 +1,37 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/user.model';
+import multer from 'multer';
 
-// Interface pour le payload JWT personnalisé
-interface ICustomJwtPayload extends JwtPayload {
+// Interface pour le payload JWT
+interface JwtPayload {
   id: string;
   role: string;
 }
 
 // Interface pour étendre l'objet Request d'Express
+declare global {
+  namespace Express {
+    interface Request {
+      user?: IUser;
+      file?: Express.Multer.File;
+      files?: {
+        [fieldname: string]: Express.Multer.File[];
+      } | Express.Multer.File[];
+    }
+  }
+}
+
 export interface AuthRequest extends Request {
   user?: IUser;
-  [key: string]: any;
+  file?: Express.Multer.File;
+  files?: {
+    [fieldname: string]: Express.Multer.File[];
+  } | Express.Multer.File[];
 }
 
 // Protéger les routes
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const protect: RequestHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
   let token: string | undefined;
 
   // Vérifier le token dans les en-têtes
@@ -36,8 +52,8 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   }
 
   try {
-    // Vérifier et décoder le token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as ICustomJwtPayload;
+    // Vérifier le token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
     // Récupérer l'utilisateur à partir de l'ID dans le token
     const user = await User.findById(decoded.id);
@@ -62,7 +78,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 };
 
 // Autoriser des rôles spécifiques
-export const authorize = (...roles: string[]) => {
+export const authorize = (...roles: string[]): RequestHandler => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
@@ -82,7 +98,7 @@ export const authorize = (...roles: string[]) => {
 };
 
 // Vérifier la propriété (l'utilisateur est le propriétaire de la ressource)
-export const checkOwnership = (model: any, paramName = 'id') => {
+export const checkOwnership = (model: any, paramName = 'id'): RequestHandler => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const resource = await model.findById(req.params[paramName]);
@@ -117,7 +133,7 @@ export const checkOwnership = (model: any, paramName = 'id') => {
 };
 
 // Vérifier les permissions
-export const checkPermission = (permission: string) => {
+export const checkPermission = (permission: string): RequestHandler => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     // Implémentez votre logique de vérification des permissions ici
     // Par exemple, vérifier dans la base de données si l'utilisateur a la permission requise

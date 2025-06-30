@@ -256,21 +256,9 @@ export const updateUser = asyncHandler(async (req: IRequestWithUser & { body: Up
   // Vérifier si un fichier a été téléchargé pour le profil
   let profileImageFile: Express.Multer.File | null = null;
   
-  if (req.files) {
-    let files: Express.Multer.File[] = [];
-    
-    // Gérer à la fois les tableaux et les objets pour les fichiers
-    if (Array.isArray(req.files)) {
-      files = req.files;
-    } else if (req.files['profileImage']) {
-      // Si c'est un objet avec des tableaux de fichiers
-      files = Array.isArray(req.files['profileImage']) 
-        ? req.files['profileImage'] 
-        : [req.files['profileImage']];
-    }
-    
-    // Chercher le fichier avec le bon fieldname
-    const file = files.find(f => f.fieldname === 'profileImage');
+  if (Array.isArray(req.files)) {
+    // Si c'est un tableau, chercher le fichier avec le bon fieldname
+    const file = req.files.find(f => f.fieldname === 'profileImage');
     if (file && !Array.isArray(file)) {
       profileImageFile = file;
     }
@@ -312,29 +300,17 @@ export const updateUser = asyncHandler(async (req: IRequestWithUser & { body: Up
   }
   
   // Gestion du CV si fourni
-  let cvFile: any = null;
+  let cvFile: Express.Multer.File | null = null;
   
-  if (req.files) {
-    let files: any[] = [];
-    
-    // Gérer à la fois les tableaux et les objets pour les fichiers
-    if (Array.isArray(req.files)) {
-      files = req.files;
-    } else if (req.files['cv']) {
-      // Si c'est un objet avec des tableaux de fichiers
-      files = Array.isArray(req.files['cv']) 
-        ? req.files['cv'] 
-        : [req.files['cv']];
-    }
-    
-    // Chercher le fichier avec le bon fieldname
-    const file = files.find((f: any) => f.fieldname === 'cv');
+  if (Array.isArray(req.files)) {
+    // Si c'est un tableau, chercher le fichier avec le bon fieldname
+    const file = req.files.find(f => f.fieldname === 'cvFile');
     if (file && !Array.isArray(file)) {
       cvFile = file;
     }
   } else if (req.files && typeof req.files === 'object') {
     // Si c'est un objet, accéder directement au tableau de fichiers
-    let cvFiles = req.files['cv'] || req.files['cvFile'];
+    const cvFiles = req.files['cvFile'];
     if (Array.isArray(cvFiles) && cvFiles.length > 0) {
       cvFile = cvFiles[0];
     } else if (cvFiles && !Array.isArray(cvFiles)) {

@@ -147,10 +147,10 @@ app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
 // Middleware pour parser le JSON
-app.use(express.json({ limit: '10kb' }) as express.RequestHandler);
+app.use(express.json({ limit: '10kb' }));
 
 // Middleware pour parser les données de formulaire
-app.use(express.urlencoded({ extended: true, limit: '10kb' }) as express.RequestHandler);
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Middleware pour les cookies
 app.use(cookieParser());
@@ -191,10 +191,10 @@ app.use('/uploads', (req, res, next) => {
 });
 
 // Servir les fichiers statiques du dossier 'public'
-app.use('/uploads', express.static(path.join(__dirname, '../../client/build'), {
-  setHeaders: (res: express.Response) => {
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  },
+app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads'), {
+  setHeaders: (res) => {
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
 }));
 
 // Routes de l'API
@@ -219,18 +219,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Gestion des erreurs 404
-app.use((req: express.Request, res: express.Response) => {
-  res.status(404).json({
-    success: false,
-    message: 'Ressource non trouvée',
-  });
-});
+// Gestion des routes non trouvées
+app.all('*', notFoundHandler);
 
-// Middleware de gestion des erreurs globales
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  globalErrorHandler(err, req, res, next);
-});
+// Middleware de gestion des erreurs global
+app.use(globalErrorHandler);
 
 // Connect to MongoDB and start the server
 const startServer = async () => {

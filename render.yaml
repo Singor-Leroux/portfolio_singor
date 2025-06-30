@@ -1,9 +1,9 @@
 services:
   - type: web
     name: portfolio-backend
-    env: node
-    buildCommand: cd server && npm install && npm run build
-    startCommand: cd server && npm start
+    env: docker
+    dockerContext: ./server
+    dockerCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production

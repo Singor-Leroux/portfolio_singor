@@ -1,5 +1,6 @@
 import { validationResult } from 'express-validator';
-import nodemailer from 'nodemailer';
+import { createTransport, Transporter } from 'nodemailer';
+import { SentMessageInfo } from 'nodemailer';
 import { config } from '../config/config';
 import { IRequestWithUser, IResponse } from '../types/express';
 
@@ -11,7 +12,7 @@ interface ContactFormData {
 }
 
 // Configuration du transporteur email
-const transporter = nodemailer.createTransport({
+const transporter: Transporter<SentMessageInfo> = createTransport({
   host: config.email.host,
   port: config.email.port,
   secure: config.email.secure, // true pour le port 465, false pour les autres ports
@@ -26,16 +27,17 @@ const transporter = nodemailer.createTransport({
  * @route POST /api/contact
  * @access Public
  */
-export const sendContactEmail = async (req: IRequestWithUser, res: IResponse) => {
+export const sendContactEmail = async (req: IRequestWithUser, res: IResponse): Promise<IResponse | void> => {
   try {
     // Validation des données
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Validation error',
         errors: errors.array(),
       });
+      return;
     }
 
     const { name, email, subject, message }: ContactFormData = req.body;

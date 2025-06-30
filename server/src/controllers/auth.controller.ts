@@ -1,7 +1,8 @@
-import { NextFunction } from 'express';
+import { RequestHandler } from 'express';
+type NextFunction = Parameters<RequestHandler>[2];
 import { IRequestWithUser, IResponse } from '../types/express';
 import { validationResult } from 'express-validator';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import User from '../models/user.model';
 import { IUser } from '../models/user.model';

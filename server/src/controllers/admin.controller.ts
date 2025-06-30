@@ -1,4 +1,5 @@
-import { NextFunction } from 'express';
+import { RequestHandler } from 'express';
+type NextFunction = Parameters<RequestHandler>[2];
 import { IRequestWithUser, IResponse } from '../types/express';
 import User from '../models/user.model';
 import { asyncHandler } from '../utils/asyncHandler';

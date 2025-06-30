@@ -53,7 +53,7 @@ interface CreateCertificationBody {
   imageUrl?: string;
 }
 
-export const createCertification = asyncHandler(async (req: IRequestWithUser & { body: CreateCertificationBody }, res: IResponse, next: Function) => {
+export const createCertification = asyncHandler(async (req: IRequestWithUser & { body: CreateCertificationBody; file?: Express.Multer.File }, res: IResponse, next: Function) => {
   const { title, issuer, date, credentialUrl } = req.body; // imageUrl removed from body destructuring
 
   // Map frontend fields to backend model fields
@@ -121,7 +121,7 @@ interface UpdateCertificationBody {
   imageUrl?: string;
 }
 
-export const updateCertification = asyncHandler(async (req: IRequestWithUser & { body: UpdateCertificationBody }, res: IResponse, next: Function) => {
+export const updateCertification = asyncHandler(async (req: IRequestWithUser & { body: UpdateCertificationBody; file?: Express.Multer.File }, res: IResponse, next: Function) => {
   const { title, issuer, date, credentialUrl } = req.body; // imageUrl removed from body destructuring
   const existingImageUrl = req.body.imageUrl; // Keep track of imageUrl sent from frontend (could be empty string)
 
